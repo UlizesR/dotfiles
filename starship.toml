@@ -1,0 +1,98 @@
+
+# Get editor completions based on the config schema
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# Sets user-defined palette
+palette = "catppuccin_mocha"
+
+format = """
+[   $username ](fg:bold mauve bg:surface1)[$directory](bold sky)$git_branch$git_status$git_metrics[](fg:surface1)
+"""
+
+right_format = """
+[](fg:surface1)$status[$cmd_duration](bold sky)$time
+"""
+
+[username]
+show_always = true
+format = '$user'
+disabled = false
+
+[cmd_duration]
+format = "[](fg:overlay1 bg:surface1)[ $duration ]($style)"
+style = "fg:subtext0 bg:surface1"
+
+[directory]
+format = "[ $path ]($style)"
+style = "fg:sky bg:surface1"
+truncate_to_repo = false
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = " "
+"Pictures" = " "
+"Public" = " "
+"Templates" = " "
+"Videos" = " "
+"Desktop" = " "
+"Home" = " "
+
+[git_branch]
+symbol = ""
+style = "fg:bold green bg:surface1"
+format = "[ ](bg:surface1)[$symbol $branch ]($style)"
+
+[git_status]
+format = "[$all_status$ahead_behind ]($style)"
+style = "fg:yellow bg:surface1"
+disabled = false
+
+[git_metrics]
+added_style = "fg:yellow bg:surface1"
+deleted_style = "fg:red bg:surface1"
+disabled = false
+format = "([+$added]($added_style))[]($added_style)"
+
+[status]
+disabled = false
+format = "[$signal_name $symbol ]($style)"
+map_symbol = true
+sigint_symbol = "[✘](fg:red bg:surface1)"
+style = "bg:surface1"
+success_symbol = "[✔](fg:green bg:surface1)"
+symbol = "[✘](fg:red bg:surface1)"
+
+[time]
+disabled = false
+time_format = "%R"
+style = "fg:sky bg:surface1"
+format = "[  $time ]($style)"
+
+[palettes.catppuccin_mocha]
+rosewater = "#f5e0dc"
+flamingo = "#f2cdcd"
+pink = "#f5c2e7"
+mauve = "#cba6f7"
+red = "#f38ba8"
+maroon = "#eba0ac"
+peach = "#fab387"
+yellow = "#f9e2af"
+green = "#a6e3a1"
+teal = "#94e2d5"
+sky = "#89dceb"
+sapphire = "#74c7ec"
+blue = "#89b4fa"
+lavender = "#b4befe"
+text = "#cdd6f4"
+subtext1 = "#bac2de"
+subtext0 = "#a6adc8"
+overlay2 = "#9399b2"
+overlay1 = "#7f849c"
+overlay0 = "#6c7086"
+surface2 = "#585b70"
+surface1 = "#45475a"
+surface0 = "#313244"
+base = "#1e1e2e"
+mantle = "#181825"
+crust = "#11111b"
