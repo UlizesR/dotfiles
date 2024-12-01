@@ -33,3 +33,9 @@ vim.keymap.set("n", "<leader>at", "<cmd>CopilotChatTests<cr>", { desc = "Copilot
 vim.keymap.set("n", "<leader>ar", "<cmd>CopilotChatReview<cr>", { desc = "CopilotChat - Review code" })
 vim.keymap.set("n", "<leader>aR", "<cmd>CopilotChatRefactor<cr>", { desc = "CopilotChat - Refactor code" })
 vim.keymap.set("n", "<leader>an", "<cmd>CopilotChatBetterNamings<cr>", { desc = "CopilotChat - Better Naming" })
+
+vim.keymap.set('n', '<leader>b', ':VimtexCompile<CR>', {desc = "Build LaTeX document"})
+vim.keymap.set('n',  '<leader>vp', ':VimtexView<CR>', {desc = "View PDF document"})
+
+vim.keymap.set('n', '<leader>cvl', ':Csvlens<CR>', { noremap = true, silent = true, desc = 'Open CsvLens' })
+

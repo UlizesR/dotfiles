@@ -15,8 +15,6 @@ return {
             'specifier changed to',
             'Token not allowed in a PDF string',
         }
-        vim.keymap.set('n', '<leader>b', ':VimtexCompile<CR>', {desc = "Build LaTeX document"})
-        vim.keymap.set('n',  '<leader>vp', ':VimtexView<CR>', {desc = "View PDF document"})
     end,
 }
 
