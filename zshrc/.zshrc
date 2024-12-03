@@ -35,6 +35,8 @@ export PATH="/$BREW_PREFIX/opt/llvm/bin:$PATH"
 export LDFLAGS="-L/$BREW_PREFIX/opt/llvm/lib"
 export CPPFLAGS="-I/$BREW_PREFIX/opt/llvm/include"
 
+# set up virtual environment for python
+export WORKON_HOME=$HOME/.virtualenvs
 
 # Example aliases
 alias zshconfig="nvim ~/.zshrc"
