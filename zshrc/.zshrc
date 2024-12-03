@@ -23,21 +23,24 @@ export LANG=en_US.UTF-8
    export EDITOR='nvim'
 fi
 
+export BREW_PREFIX=$(brew --prefix)
+
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
-export INCFLAGS="-I/opt/homebrew/include -I/usr/local/include"
+export INCFLAGS="-I/$BREW_PREFIX/include -I/usr/local/include"
 export CFLAGS="-std=c17 $INCFLAGS"
 export CPPFLAGS="-std=c++17 $INCFLAGS"
-export LDFLAGS="-L/opt/homebrew/lib -L/usr/local/lib"
-export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
-export LDFLAGS="-L/opt/homebrew/opt/llvm/lib"
-export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
+export LDFLAGS="-L/$BREW_PREFIX/lib -L/usr/local/lib"
+export PATH="/$BREW_PREFIX/opt/llvm/bin:$PATH"
+export LDFLAGS="-L/$BREW_PREFIX/opt/llvm/lib"
+export CPPFLAGS="-I/$BREW_PREFIX/opt/llvm/include"
+
 
 # Example aliases
 alias zshconfig="nvim ~/.zshrc"
 alias zshsource="source ~/.zshrc"
 
-source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source $BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 # disable underline
 (( ${+ZSH_HIGHLIGHT_STYLES} )) || typeset -A ZSH_HIGHLIGHT_STYLES
@@ -60,7 +63,5 @@ path=('/Users/uliraudales/.juliaup/bin' $path)
 export PATH
 
 # <<< juliaup initialize <<<
-
-test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
 
 . "/Users/uliraudales/.deno/env"

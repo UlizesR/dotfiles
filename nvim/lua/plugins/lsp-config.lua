@@ -29,9 +29,6 @@ return {
                     "julials",
                     "jdtls",
                     "jsonls",
-                    "html",
-                    "cssls",
-                    "tsserver",
                     "asm_lsp",
                     "ast_grep"
                 }
@@ -72,16 +69,7 @@ return {
             lspconfig.jdtls.setup({
                 capabilities = cmp_capabilities,
             })
-            lspconfig.tsserver.setup({
-                capabilities = cmp_capabilities,
-            })
             lspconfig.jsonls.setup({
-                capabilities = cmp_capabilities,
-            })
-            lspconfig.html.setup({
-                capabilities = cmp_capabilities,
-            })
-            lspconfig.cssls.setup({
                 capabilities = cmp_capabilities,
             })
             lspconfig.asm_lsp.setup({
