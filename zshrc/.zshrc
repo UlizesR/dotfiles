@@ -50,7 +50,7 @@ ZSH_HIGHLIGHT_STYLES[default]=none
 ZSH_HIGHLIGHT_STYLES[path_prefix]=none
 
 # activate auto-suggestions
-source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+source $BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 
 # ~/.zshrc
@@ -66,4 +66,3 @@ export PATH
 
 # <<< juliaup initialize <<<
 
-. "/Users/uliraudales/.deno/env"

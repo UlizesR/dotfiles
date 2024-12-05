@@ -5,7 +5,7 @@
 palette = "catppuccin_mocha"
 
 format = """
-[   $username ](fg:bold mauve bg:surface1)[$directory](bold sky)$git_branch$git_status$git_metrics$python$nodejs$rust$julia[](fg:surface1)
+[   $username ](fg:bold mauve bg:surface1)[$directory](bold sky)$git_branch$git_status$git_metrics$python$nodejs$rust$julia$lua[](fg:surface1)
 """
 
 right_format = """
@@ -44,21 +44,26 @@ format = '[$symbol (${virtualenv}) ($version) ]($style)'
 
 [c]
 symbol = " "
-style = "bg:#86BBD8"
+style = "bg:surface1 fg:#86BBD8"
+
+[lua]
+symbol = " "
+style = "bg:surface1 fg:#86BBD8"
+format = '[ $symbol ($version) ]($style)'
 
 [julia]
 symbol = " "
-style = "bg:#86BBD8"
+style = "bg:surface1 fg:#86BBD8"
 format = '[ $symbol ($version) ]($style)'
 
 [nodejs]
 symbol = ""
-style = "bg:#86BBD8"
+style = "bg:surface1 fg:#86BBD8"
 format = '[ $symbol ($version) ]($style)'
 
 [rust]
 symbol = ""
-style = "bg:#86BBD8"
+style = "bg:surface1 fg:#86BBD8"
 format = '[ $symbol ($version) ]($style)'
 
 [git_branch]

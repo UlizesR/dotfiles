@@ -79,6 +79,13 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, conf, hover, max_width
     }
 end)
 
+-- if OS is macOS, set CMD as the mod key
+-- otherwise, set CTRL as the mod key
+local mod_key = "CTRL"
+if wezterm.target_triple == "x86_64-apple-darwin" or wezterm.target_triple == "aarch64-apple-darwin" then
+    mod_key = "CMD"
+end
+
 config = {
     automatically_reload_config = true,
 
@@ -88,28 +95,28 @@ config = {
     keys = {
 
         -- Pane keybindings
-        { key = "s",          mods = "CMD|ALT",      action = act.SplitVertical { domain = "CurrentPaneDomain" } },
-        { key = "v",          mods = "CMD|ALT",      action = act.SplitHorizontal { domain = "CurrentPaneDomain" } },
-        { key = "h",          mods = "CMD|ALT",      action = act.ActivatePaneDirection("Left") },
-        { key = "j",          mods = "CMD|ALT",      action = act.ActivatePaneDirection("Down") },
-        { key = "k",          mods = "CMD|ALT",      action = act.ActivatePaneDirection("Up") },
-        { key = "l",          mods = "CMD|ALT",      action = act.ActivatePaneDirection("Right") },
-        { key = "q",          mods = "CMD|ALT",      action = act.CloseCurrentPane { confirm = true } },
+        { key = "s",          mods = mod_key .. "|ALT",      action = act.SplitVertical { domain = "CurrentPaneDomain" } },
+        { key = "v",          mods = mod_key .. "|ALT",      action = act.SplitHorizontal { domain = "CurrentPaneDomain" } },
+        { key = "h",          mods = mod_key .. "|ALT",      action = act.ActivatePaneDirection("Left") },
+        { key = "j",          mods = mod_key .. "|ALT",      action = act.ActivatePaneDirection("Down") },
+        { key = "k",          mods = mod_key .. "|ALT",      action = act.ActivatePaneDirection("Up") },
+        { key = "l",          mods = mod_key .. "|ALT",      action = act.ActivatePaneDirection("Right") },
+        { key = "q",          mods = mod_key .. "|ALT",      action = act.CloseCurrentPane { confirm = true } },
 
           -- Tab keybindings
-        { key = "t",          mods = "CMD",            action = act.SpawnTab("CurrentPaneDomain") },
-        { key = "[",          mods = "CMD|SHIFT",      action = act.ActivateTabRelative(-1) },
-        { key = "]",          mods = "CMD|SHIFT",      action = act.ActivateTabRelative(1) },
-        { key = "n",          mods = "CMD|SHIFT",      action = act.ShowTabNavigator },
-        { key = "w",          mods = "CMD|SHIFT",      action = act.CloseCurrentTab { confirm = true } },
+        { key = "t",          mods = mod_key,                  action = act.SpawnTab("CurrentPaneDomain") },
+        { key = "[",          mods = mod_key .. "|SHIFT",      action = act.ActivateTabRelative(-1) },
+        { key = "]",          mods = mod_key .. "|SHIFT",      action = act.ActivateTabRelative(1) },
+        { key = "n",          mods = mod_key .. "|SHIFT",      action = act.ShowTabNavigator },
+        { key = "w",          mods = mod_key .. "|SHIFT",      action = act.CloseCurrentTab { confirm = true } },
 
         -- Clipboard keybindings
-        { key = "c",          mods = "CMD",            action = act.CopyTo "ClipboardAndPrimarySelection" },
-        { key = "v",          mods = "CMD",            action = act.PasteFrom "Clipboard" },
-        { key = "c",          mods = "CMD|SHIFT",      action = act.CopyTo "PrimarySelection" },
+        { key = "c",          mods = mod_key,                  action = act.CopyTo "ClipboardAndPrimarySelection" },
+        { key = "v",          mods = mod_key,                  action = act.PasteFrom "Clipboard" },
+        { key = "c",          mods = mod_key .. "|SHIFT",      action = act.CopyTo "PrimarySelection" },
 
         -- Window keybindings
-        { key = "f",          mods = "CMD|SHIFT",      action = act.ToggleFullScreen },
+        { key = "f",          mods = mod_key .. "|SHIFT",      action = act.ToggleFullScreen },
 
     },
 
