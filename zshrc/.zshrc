@@ -26,23 +26,27 @@ fi
 export BREW_PREFIX=$(brew --prefix)
 
 # Compilation flags
-# export ARCHFLAGS="-arch x86_64"
-export INCFLAGS="-I/$BREW_PREFIX/include -I/usr/local/include"
-export CFLAGS="-std=c17 $INCFLAGS"
-export CPPFLAGS="-std=c++17 $INCFLAGS"
-export LDFLAGS="-L/$BREW_PREFIX/lib -L/usr/local/lib"
-export PATH="/$BREW_PREFIX/opt/llvm/bin:$PATH"
-export LDFLAGS="-L/$BREW_PREFIX/opt/llvm/lib"
-export CPPFLAGS="-I/$BREW_PREFIX/opt/llvm/include"
+export CFLAGS="-I$BREW_PREFIX/include -I/usr/local/include -I/$BREW_PREFIX/opt/llvm/include"
+export LDFLAGS="-L$BREW_PREFIX/lib -L/usr/local/lib -L/$BREW_PREFIX/opt/llvm/lib"
+export CPPFLAGS="-I$BREW_PREFIX/include -I/usr/local/include -I/$BREW_PREFIX/opt/llvm/include"
+export PKG_CONFIG_PATH="$BREW_PREFIX/opt/llvm/lib/pkgconfig"
+
 
 # set up virtual environment for python
 export WORKON_HOME=$HOME/.virtualenvs
+export PATH="/Library/Frameworks/Python.framework/Versions/3.12/bin:$PATH"
 
 # Example aliases
 alias zshconfig="nvim ~/.zshrc"
 alias zshsource="source ~/.zshrc"
 
-source $BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+# if macOS use BREW_PREFIX for the zsh-syntax-highlighting and zsh-autosuggestions plugins
+# otherwise use usr/ prefix
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    source $BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+else
+    source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+fi
 
 # disable underline
 (( ${+ZSH_HIGHLIGHT_STYLES} )) || typeset -A ZSH_HIGHLIGHT_STYLES
@@ -65,4 +69,3 @@ path=('/Users/uliraudales/.juliaup/bin' $path)
 export PATH
 
 # <<< juliaup initialize <<<
-
