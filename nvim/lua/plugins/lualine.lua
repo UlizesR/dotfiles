@@ -1,6 +1,5 @@
 return {
     'nvim-lualine/lualine.nvim',
-    dependencies = { 'nvim-tree/nvim-web-devicons' },
     config = function()
         local line = require('lualine')
         line.setup({
@@ -15,7 +14,6 @@ return {
                 lualine_z = { { 'location', separator = { right = '' }, left_padding = 2 } },
             },
             extensions = {
-                'neo-tree',
                 'mason',
                 'lazy',
             },

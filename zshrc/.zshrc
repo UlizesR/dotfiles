@@ -1,71 +1,103 @@
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:/usr/local/bin:$PATH
-
-# Path to your oh-my-zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
-
-# Set name of the theme to load --- if set to "random", it will
-# load a random theme each time oh-my-zsh is loaded, in which case,
-# to know which specific one was loaded, run: echo $RANDOM_THEME
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="robbyrussell"
-
-plugins=(git)
-
-source $ZSH/oh-my-zsh.sh
+# Zinit setup and plugins
+ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
+if [ ! -d "$ZINIT_HOME" ]; then
+   mkdir -p "$(dirname $ZINIT_HOME)"
+   git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+fi
+source "${ZINIT_HOME}/zinit.zsh"
 
 export LANG=en_US.UTF-8
 
 # Preferred editor for local and remote sessions
- if [[ -n $SSH_CONNECTION ]]; then
-   export EDITOR='vim'
- else
-   export EDITOR='nvim'
+if [[ -n $SSH_CONNECTION ]]; then
+  export EDITOR='vim'
+else
+  export EDITOR='nvim'
 fi
 
-export BREW_PREFIX=$(brew --prefix)
+# Set BREW_PREFIX if Homebrew is installed
+if command -v brew >/dev/null 2>&1; then
+  export BREW_PREFIX=$(brew --prefix)
+else
+  export BREW_PREFIX=""
+fi
 
-# Compilation flags
-export CFLAGS="-I$BREW_PREFIX/include -I/usr/local/include -I/$BREW_PREFIX/opt/llvm/include"
-export LDFLAGS="-L$BREW_PREFIX/lib -L/usr/local/lib -L/$BREW_PREFIX/opt/llvm/lib"
-export CPPFLAGS="-I$BREW_PREFIX/include -I/usr/local/include -I/$BREW_PREFIX/opt/llvm/include"
-export PKG_CONFIG_PATH="$BREW_PREFIX/opt/llvm/lib/pkgconfig"
+# Compilation flags (only if BREW_PREFIX is set)
+if [[ -n "$BREW_PREFIX" ]]; then
+  export CFLAGS="-I$BREW_PREFIX/include -I/usr/local/include -I/$BREW_PREFIX/opt/llvm/include"
+  export LDFLAGS="-L$BREW_PREFIX/lib -L/usr/local/lib -L/$BREW_PREFIX/opt/llvm/lib"
+  export CPPFLAGS="-I$BREW_PREFIX/include -I/usr/local/include -I/$BREW_PREFIX/opt/llvm/include"
+  export PKG_CONFIG_PATH="$BREW_PREFIX/opt/llvm/lib/pkgconfig"
+fi
 
-
-# set up virtual environment for python
+# Python virtualenv setup
 export WORKON_HOME=$HOME/.virtualenvs
-export PATH="/Library/Frameworks/Python.framework/Versions/3.12/bin:$PATH"
 
-# Example aliases
+# Add Python to PATH (macOS vs Linux)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  export PATH="/Library/Frameworks/Python.framework/Versions/3.12/bin:$PATH"
+elif command -v python3 >/dev/null 2>&1; then
+  export PATH="$(dirname $(command -v python3)):$PATH"
+fi
+
+# Aliases
 alias zshconfig="nvim ~/.zshrc"
 alias zshsource="source ~/.zshrc"
+alias ls='ls --color'
+alias vim='nvim'
+alias c='clear'
 
-# if macOS use BREW_PREFIX for the zsh-syntax-highlighting and zsh-autosuggestions plugins
-# otherwise use usr/ prefix
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    source $BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-else
-    source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+# Plugins via zinit
+zinit light zsh-users/zsh-completions
+zinit light zsh-users/zsh-autosuggestions
+zinit light Aloxaf/fzf-tab
+# zsh-syntax-highlighting should be last
+zinit light zsh-users/zsh-syntax-highlighting
+
+# Add in snippets
+zinit snippet OMZL::git.zsh
+zinit snippet OMZP::git
+zinit snippet OMZP::sudo
+zinit snippet OMZP::archlinux
+zinit snippet OMZP::aws
+zinit snippet OMZP::kubectl
+zinit snippet OMZP::kubectx
+zinit snippet OMZP::command-not-found
+
+autoload -Uz compinit && compinit
+
+if command -v zoxide >/dev/null 2>&1; then
+  eval "$(zoxide init --cmd cd zsh)"
 fi
 
-# disable underline
-(( ${+ZSH_HIGHLIGHT_STYLES} )) || typeset -A ZSH_HIGHLIGHT_STYLES
-ZSH_HIGHLIGHT_STYLES[default]=none
-ZSH_HIGHLIGHT_STYLES[path_prefix]=none
+zinit cdreplay -q
 
-# activate auto-suggestions
-source $BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+# Keybindings
+bindkey -e
+bindkey '^p' history-search-backward
+bindkey '^n' history-search-forward
+bindkey '^[w' kill-region
 
+# History
+HISTSIZE=5000
+HISTFILE=~/.zsh_history
+SAVEHIST=$HISTSIZE
+HISTDUP=erase
+setopt appendhistory
+setopt sharehistory
+setopt hist_ignore_space
+setopt hist_ignore_all_dups
+setopt hist_save_no_dups
+setopt hist_ignore_dups
+setopt hist_find_no_dups
 
-# ~/.zshrc
+# Completion styling
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' menu no
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 
+# Shell integrations
+eval "$(fzf --zsh)"
 eval "$(starship init zsh)"
-
-# >>> juliaup initialize >>>
-
-# !! Contents within this block are managed by juliaup !!
-
-path=('/Users/uliraudales/.juliaup/bin' $path)
-export PATH
-
-# <<< juliaup initialize <<<

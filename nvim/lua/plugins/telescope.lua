@@ -1,54 +1,41 @@
 return {
-{
-    'nvim-telescope/telescope-ui-select.nvim',
-},
-{
-    'nvim-telescope/telescope.nvim', tag = '0.1.8',
-    dependencies = { 'nvim-lua/plenary.nvim', 'jonarrien/telescope-cmdline.nvim' },
-    config = function()
-        local tele = require('telescope')
-        tele.setup({
-            extensions = {
-                ["ui-select"] = {
-                    require("telescope.themes").get_dropdown{}
-                },
-                cmdline = {
-                    picker = {
-                        layout_config = {width  = 120, height = 25,}
-                    },
-                    mappings = {
-                        complete = '<Tab>',
-                        run_selection = '<C-CR>',
-                        run_input = '<CR>',
-                    },
-                },
+    {
+        "nvim-telescope/telescope.nvim",
+        tag = '0.1.8',
+        dependencies = {
+            'nvim-lua/plenary.nvim',
+            {
+                'nvim-telescope/telescope-fzf-native.nvim', build = 'make'
             }
-        })
-        require('telescope').load_extension("ui-select")
-        local builtin = require('telescope.builtin')
+        },
+        config = function()
+            local tsb = require('telescope.builtin')
+            local ts = require('telescope')
 
-        -- Keybindings for existing Telescope commands
-        vim.keymap.set('n', '<leader>ff', builtin.find_files, {desc = "Find Files"})
-        vim.keymap.set('n', '<leader>fg', builtin.live_grep, {desc = "Live Grep"})
-        vim.keymap.set('n', '<leader>fb', builtin.buffers, {desc = "Buffers"})
-        vim.keymap.set('n', '<leader>fh', builtin.help_tags, {desc = "Help Tags"})
-        vim.keymap.set('n', ':', ':Telescope cmdline<CR>', { noremap = true, desc = "Cmdline" })
+            ts.setup({
+                extensions = {
+                    fzf = {}
+                }
+            })
+            ts.load_extension('fzf')
 
-        -- Function to show all keymaps using Telescope
-        local function show_keymaps()
-            local opts = {
-                layout_strategy = 'vertical',
-                layout_config = { width = 0.75 },
-            }
-            require('telescope.builtin').keymaps(opts)
-        end
+            vim.keymap.set('n', '<leader>ff', tsb.find_files, { desc = "Find Files in current directory" })
+            vim.keymap.set('n', '<leader>fh', tsb.help_tags, { desc = 'Telescope help tags' })
+            vim.keymap.set('n', '<leader>en', function()
+                tsb.find_files {
+                    cwd = vim.fn.stdpath('config')
+                }
+            end, { desc = "Navigate to config" })
+            vim.keymap.set("n", "<space>ep", function()
+                require('telescope.builtin').find_files {
+                    cwd = vim.fs.joinpath(vim.fn.stdpath("data"), "lazy")
+                }
+            end, { desc = "Navigate to lazy" })
 
-        -- Command to show keymaps
-        vim.api.nvim_create_user_command('ShowKeymaps', show_keymaps, {})
+            vim.keymap.set('n', '<leader>vgc', tsb.git_commits, { desc = "Git commits" })
+            vim.keymap.set('n', '<leader>vgb', tsb.git_branches, { desc = "Git branches" })
+            vim.keymap.set('n', '<leader>vgs', tsb.git_status, { desc = "Git status" })
 
-        -- Optional: Bind the command to a key combination with a description
-        vim.keymap.set('n', '<leader>sk', ':ShowKeymaps<CR>', { noremap = true, silent = true, desc = "Show all keymaps" })
-
-    end,
-},
+        end,
+    }
 }
