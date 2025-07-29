@@ -97,3 +97,4 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 # Shell integrations
 eval "$(fzf --zsh)"
 eval "$(starship init zsh)"
+export PATH="$HOME/CodeProjects/libgen/tools:$PATH"
