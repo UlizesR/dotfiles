@@ -138,7 +138,28 @@ else # Linux/WSL
     if command -v apt-get &> /dev/null; then
         echo "📦 Installing CLI tools..."
         sudo apt-get update
-        sudo apt-get install -y neovim fzf ripgrep bat zoxide tmux htop git curl
+        
+        # Install basic tools first
+        sudo apt-get install -y neovim fzf ripgrep bat tmux htop git curl wget unzip
+        
+        # Install zoxide manually since it's not in default repos
+        if ! command -v zoxide &> /dev/null; then
+            echo "  Installing zoxide..."
+            curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
+            echo "  ✅ zoxide installed"
+        else
+            echo "  ✅ zoxide already installed"
+        fi
+        
+        # Fix Tailscale GPG key issue
+        if ! apt-key list | grep -q "Tailscale"; then
+            echo "🔑 Fixing Tailscale repository GPG key..."
+            curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/focal.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+            curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/focal.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list
+            sudo apt-get update
+            echo "✅ Tailscale repository fixed"
+        fi
+        
         echo "✅ CLI tools installed"
     else
         echo "⚠️  apt-get not found, please install CLI tools manually"
