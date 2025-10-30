@@ -73,15 +73,15 @@ if [ "$OS" = "Darwin" ]; then
     brew upgrade
     echo "✅ Homebrew packages updated"
 
-    # Install CLI tools
+    # Install CLI tools (skip if already installed)
     echo "📦 Installing CLI tools..."
     for pkg in nvim fzf ripgrep bat zoxide tmux htop git; do
-        if ! command -v $pkg &> /dev/null; then
-            echo "  Installing $pkg..."
-            brew install $pkg || brew install --cask $pkg
-            echo "  ✅ $pkg installed"
-        else
+        if brew list --formula "$pkg" >/dev/null 2>&1; then
             echo "  ✅ $pkg already installed"
+        else
+            echo "  Installing $pkg..."
+            brew install "$pkg"
+            echo "  ✅ $pkg installed"
         fi
     done
 
@@ -118,7 +118,6 @@ if [ "$OS" = "Darwin" ]; then
     # Install JetBrains Mono Nerd Font
     if ! fc-list | grep -qi "JetBrainsMono Nerd Font"; then
         echo "🔤 Installing JetBrains Mono Nerd Font..."
-        brew tap homebrew/cask-fonts
         brew install --cask font-jetbrains-mono-nerd-font
         echo "✅ JetBrains Mono Nerd Font installed"
     else
@@ -138,10 +137,24 @@ else # Linux/WSL
     if command -v apt-get &> /dev/null; then
         echo "📦 Installing CLI tools..."
         sudo apt-get update
-        
-        # Install basic tools first
-        sudo apt-get install -y neovim fzf ripgrep bat tmux htop git curl wget unzip
-        
+
+        # Determine missing packages and install only those
+        MISSING_PKGS=()
+        for pkg in neovim fzf ripgrep bat tmux htop git curl wget unzip; do
+            if dpkg -s "$pkg" >/dev/null 2>&1; then
+                echo "  ✅ $pkg already installed"
+            else
+                echo "  📦 Will install $pkg"
+                MISSING_PKGS+=("$pkg")
+            fi
+        done
+
+        if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
+            sudo apt-get install -y "${MISSING_PKGS[@]}"
+        else
+            echo "  ✅ All CLI tools already installed"
+        fi
+
         # Install zoxide manually since it's not in default repos
         if ! command -v zoxide &> /dev/null; then
             echo "  Installing zoxide..."

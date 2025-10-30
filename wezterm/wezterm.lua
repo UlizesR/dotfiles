@@ -118,6 +118,14 @@ config = {
         -- Window keybindings
         { key = "f",          mods = mod_key .. "|SHIFT",      action = act.ToggleFullScreen },
 
+        -- Terminal editing conveniences
+        -- Alt+Backspace: delete previous word
+        { key = "Backspace",  mods = "ALT",                   action = act.SendKey { key = "w", mods = "CTRL" } },
+        -- Ctrl+Backspace: delete to start of line
+        { key = "Backspace",  mods = "CTRL",                  action = act.SendKey { key = "u", mods = "CTRL" } },
+        -- Cmd+Backspace (macOS): delete to start of line
+        { key = "Backspace",  mods = "CMD",                   action = act.SendKey { key = "u", mods = "CTRL" } },
+
     },
 
     -- Tab settings 
