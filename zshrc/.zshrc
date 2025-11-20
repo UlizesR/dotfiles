@@ -18,12 +18,13 @@ else
   export BREW_PREFIX=""
 fi
 
-# Compilation flags (only if BREW_PREFIX is set)
+# Compilation flags and LLVM setup (only if BREW_PREFIX is set)
 if [[ -n "$BREW_PREFIX" ]]; then
-  export CFLAGS="-I$BREW_PREFIX/include -I/usr/local/include -I/$BREW_PREFIX/opt/llvm/include"
-  export LDFLAGS="-L$BREW_PREFIX/lib -L/usr/local/lib -L/$BREW_PREFIX/opt/llvm/lib"
-  export CPPFLAGS="-I$BREW_PREFIX/include -I/usr/local/include -I/$BREW_PREFIX/opt/llvm/include"
+  export CFLAGS="-I$BREW_PREFIX/include -I/usr/local/include -I$BREW_PREFIX/opt/llvm/include"
+  export LDFLAGS="-L$BREW_PREFIX/lib -L/usr/local/lib -L$BREW_PREFIX/opt/llvm/lib"
+  export CPPFLAGS="-I$BREW_PREFIX/include -I/usr/local/include -I$BREW_PREFIX/opt/llvm/include"
   export PKG_CONFIG_PATH="$BREW_PREFIX/opt/llvm/lib/pkgconfig"
+  export PATH="$BREW_PREFIX/opt/llvm/bin:/usr/local/bin:$PATH"
 fi
 
 # Python virtualenv setup
@@ -40,8 +41,8 @@ fi
 alias zshconfig="nvim ~/.zshrc"
 alias zshsource="source ~/.zshrc"
 alias ls='ls --color'
+alias lla='ls -la'
 alias vim='nvim'
-alias c='clear'
 
 # Plugins via zinit
 zinit light zsh-users/zsh-completions
@@ -61,10 +62,6 @@ zinit snippet OMZP::kubectx
 zinit snippet OMZP::command-not-found
 
 autoload -Uz compinit && compinit
-
-if command -v zoxide >/dev/null 2>&1; then
-  eval "$(zoxide init --cmd cd zsh)"
-fi
 
 zinit cdreplay -q
 
@@ -98,3 +95,8 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 eval "$(fzf --zsh)"
 eval "$(starship init zsh)"
 export PATH="$HOME/CodeProjects/libgen/tools:$PATH"
+
+# Initialize zoxide (must be at the end)
+if command -v zoxide >/dev/null 2>&1; then
+  eval "$(zoxide init --cmd cd zsh)"
+fi

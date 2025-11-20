@@ -1,7 +1,7 @@
 return {
     {
         "neovim/nvim-lspconfig",
-        lazy = false,
+        event = { "BufReadPre", "BufNewFile" },
         dependencies = {
             "hrsh7th/nvim-cmp",
             "hrsh7th/cmp-nvim-lsp",
@@ -16,11 +16,6 @@ return {
         },
 
         config = function()
-            local lspconfig_status, lspconfig = pcall(require, "lspconfig")
-            if not lspconfig_status then
-                return
-            end
-
             -- Setup fidget.nvim for LSP progress
             require("fidget").setup()
 
@@ -73,9 +68,12 @@ return {
 
             local capabilities = cmp_nvim_lsp.default_capabilities()
 
+            -- Create format augroup once (outside on_attach for efficiency)
+            local format_augroup = vim.api.nvim_create_augroup("LspFormatting", { clear = true })
+
             local on_attach = function(client, bufnr)
                 -- Enable completion triggered by <c-x><c-o>
-                vim.api.nvim_buf_set_option(bufnr, 'omnifunc', 'v:lua.vim.lsp.omnifunc')
+                vim.bo[bufnr].omnifunc = 'v:lua.vim.lsp.omnifunc'
 
                 -- Mappings.
                 local bufopts = { noremap=true, silent=true, buffer=bufnr }
@@ -110,7 +108,7 @@ return {
                 -- Format on save if the client supports it
                 if client.server_capabilities.documentFormattingProvider then
                     vim.api.nvim_create_autocmd("BufWritePre", {
-                        group = vim.api.nvim_create_augroup("LspFormatting", { clear = true }),
+                        group = format_augroup,
                         buffer = bufnr,
                         callback = function()
                             vim.lsp.buf.format({ async = false })
@@ -159,6 +157,7 @@ return {
                     ["<C-f>"] = cmp.mapping.scroll_docs(4),
                 },
                 sources = cmp.config.sources({
+                    { name = "copilot", priority = 1100 },
                     { name = "nvim_lsp", priority = 1000 },
                     { name = "luasnip", priority = 750 },
                     { name = "path", priority = 500 },
@@ -190,6 +189,7 @@ return {
                         
                         -- Add source name to completion menu
                         vim_item.menu = ({
+                            copilot = "[Copilot]",
                             nvim_lsp = "[LSP]",
                             luasnip = "[Snippet]",
                             buffer = "[Buffer]",
@@ -242,7 +242,7 @@ return {
 
             -- LSP Server Configurations
             local servers = {
-                -- C/C++
+                -- C/C++ (Note: paths below are configured for macOS with Homebrew)
                 clangd = {
                     cmd = {
                         "clangd",
@@ -301,13 +301,14 @@ return {
                 pyright = {},
             }
 
-            -- Setup all servers
+            -- Setup all servers using modern vim.lsp.config API (Neovim 0.11+)
             for server, config in pairs(servers) do
                 config.capabilities = capabilities
                 config.on_attach = on_attach
                 config.flags = { debounce_text_changes = 150 }
                 
-                lspconfig[server].setup(config)
+                -- Use vim.lsp.config instead of lspconfig
+                vim.lsp.config(server, config)
             end
         end,
     }

@@ -1,18 +1,38 @@
 return {
-	"nvimtools/none-ls.nvim",
-	config = function()
-		local null_ls = require("null-ls")
-		null_ls.setup({
-			sources = {
-				null_ls.builtins.formatting.stylua,
-				null_ls.builtins.formatting.black,
-				null_ls.builtins.formatting.isort,
-				null_ls.builtins.formatting.clang_format,
-				null_ls.builtins.formatting.astyle,
-				null_ls.builtins.formatting.uncrustify,
-				null_ls.builtins.diagnostics.vale,
-				null_ls.builtins.code_actions.proselint,
+	{
+		"stevearc/conform.nvim",
+		event = { "BufWritePre" },
+		cmd = { "ConformInfo" },
+		opts = {
+			formatters_by_ft = {
+				lua = { "stylua" },
+				python = { "isort", "black" },
+				cpp = { "clang_format" },
+				c = { "clang_format" },
 			},
-		})
-	end,
+			format_on_save = {
+				timeout_ms = 500,
+				lsp_fallback = true,
+			},
+		},
+	},
+	{
+		"mfussenegger/nvim-lint",
+		event = { "BufReadPre", "BufNewFile" },
+		config = function()
+			local lint = require("lint")
+			lint.linters_by_ft = {
+				markdown = { "vale" },
+				text = { "vale" },
+			}
+			
+			-- Auto-lint on text change and buffer enter
+			vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
+				group = vim.api.nvim_create_augroup("NvimLint", { clear = true }),
+				callback = function()
+					lint.try_lint()
+				end,
+			})
+		end,
+	},
 }

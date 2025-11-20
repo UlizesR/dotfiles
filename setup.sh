@@ -133,6 +133,17 @@ if [ "$OS" = "Darwin" ]; then
 else # Linux/WSL
     echo "🐧 Setting up Linux environment..."
     
+    # Sync system time (important for VMs)
+    if command -v timedatectl &> /dev/null; then
+        echo "🕐 Syncing system time..."
+        if ! timedatectl status | grep -q "NTP enabled: yes" 2>/dev/null; then
+            sudo timedatectl set-ntp true 2>/dev/null || true
+        fi
+        # Wait a moment for time to sync
+        sleep 2
+        echo "✅ System time synced"
+    fi
+    
     # Install CLI tools (assumes apt-get, adjust for your distro)
     if command -v apt-get &> /dev/null; then
         echo "📦 Installing CLI tools..."
