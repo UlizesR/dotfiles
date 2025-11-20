@@ -124,6 +124,15 @@ if [ "$OS" = "Darwin" ]; then
         echo "✅ JetBrains Mono Nerd Font already installed"
     fi
 
+    # Install WezTerm
+    if ! command -v wezterm &> /dev/null; then
+        echo "🪟 Installing WezTerm..."
+        brew install --cask wezterm
+        echo "✅ WezTerm installed"
+    else
+        echo "✅ WezTerm already installed"
+    fi
+
     # Set macOS defaults (show hidden files in Finder)
     echo "⚙️  Setting macOS defaults..."
     defaults write com.apple.finder AppleShowAllFiles -bool true
@@ -185,6 +194,19 @@ else # Linux/WSL
         fi
         
         echo "✅ CLI tools installed"
+        
+        # Install WezTerm (Linux - Ubuntu/Debian via APT)
+        if ! command -v wezterm &> /dev/null; then
+            echo "🪟 Installing WezTerm..."
+            # Add WezTerm APT repository
+            curl -fsSL https://apt.fury.io/wez/gpg.key | sudo gpg --yes --dearmor -o /usr/share/keyrings/wezterm-fury.gpg
+            echo "deb [signed-by=/usr/share/keyrings/wezterm-fury.gpg] https://apt.fury.io/wez/ * *" | sudo tee /etc/apt/sources.list.d/wezterm.list >/dev/null
+            sudo apt-get update
+            sudo apt-get install -y wezterm
+            echo "✅ WezTerm installed"
+        else
+            echo "✅ WezTerm already installed"
+        fi
     else
         echo "⚠️  apt-get not found, please install CLI tools manually"
     fi
