@@ -2,10 +2,18 @@
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
 source "${ZINIT_HOME}/zinit.zsh"
 
-# Initialize Homebrew (check both Apple Silicon and Intel locations)
-if [[ -x /opt/homebrew/bin/brew ]]; then
+# Initialize Homebrew (check macOS and Linux locations)
+if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+  # Linuxbrew (multi-user installation)
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+elif [[ -x "$HOME/.linuxbrew/bin/brew" ]]; then
+  # Linuxbrew (single-user installation)
+  eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
+elif [[ -x /opt/homebrew/bin/brew ]]; then
+  # macOS (Apple Silicon)
   eval "$(/opt/homebrew/bin/brew shellenv)"
 elif [[ -x /usr/local/bin/brew ]]; then
+  # macOS (Intel) or fallback
   eval "$(/usr/local/bin/brew shellenv)"
 fi
 
