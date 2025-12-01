@@ -129,8 +129,6 @@ config = {
     },
 
     -- Tab settings 
-    show_close_tab_button_in_tabs = false,
-
     tab_max_width = 32,
     use_fancy_tab_bar = false,
     show_new_tab_button_in_tab_bar = false,
