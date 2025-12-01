@@ -82,12 +82,16 @@ end)
 -- if OS is macOS, set CMD as the mod key
 -- otherwise, set CTRL as the mod key
 local mod_key = "CTRL"
-if wezterm.target_triple == "x86_64-apple-darwin" or wezterm.target_triple == "aarch64-apple-darwin" then
+local is_macos = wezterm.target_triple == "x86_64-apple-darwin" or wezterm.target_triple == "aarch64-apple-darwin"
+if is_macos then
     mod_key = "CMD"
 end
 
 config = {
     automatically_reload_config = true,
+
+    -- Disable Wayland on Linux to avoid connection issues (use X11 instead)
+    enable_wayland = false,
 
     -- Keys
     disable_default_key_bindings = true,
