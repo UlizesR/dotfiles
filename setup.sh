@@ -28,13 +28,28 @@ else
     echo "⚠️  Not in a git repository, skipping repo update"
 fi
 
+# Detect Linux distribution
+if [ "$OS" != "Darwin" ]; then
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        DISTRO=$ID
+    elif [ -f /etc/arch-release ]; then
+        DISTRO="arch"
+    else
+        DISTRO="unknown"
+    fi
+    echo "📋 Detected Linux distribution: $DISTRO"
+fi
+
 # Ensure zsh is installed
 echo "🐚 Checking zsh installation..."
 if ! command -v zsh &> /dev/null; then
     echo "📦 Installing zsh..."
     if [ "$OS" = "Darwin" ]; then
         brew install zsh
-    else
+    elif [ "$DISTRO" = "arch" ]; then
+        sudo pacman -S --noconfirm zsh
+    elif command -v apt-get &> /dev/null; then
         sudo apt-get install -y zsh
     fi
     echo "✅ zsh installed successfully"
@@ -153,9 +168,61 @@ else # Linux/WSL
         echo "✅ System time synced"
     fi
     
-    # Install CLI tools (assumes apt-get, adjust for your distro)
-    if command -v apt-get &> /dev/null; then
-        echo "📦 Installing CLI tools..."
+    # Install CLI tools based on distribution
+    if [ "$DISTRO" = "arch" ]; then
+        echo "📦 Installing CLI tools (Arch Linux)..."
+        
+        # Update package database
+        sudo pacman -Sy --noconfirm
+        
+        # Arch Linux package names
+        MISSING_PKGS=()
+        for pkg in neovim fzf ripgrep bat tmux htop git curl wget unzip; do
+            if pacman -Qi "$pkg" &>/dev/null; then
+                echo "  ✅ $pkg already installed"
+            else
+                echo "  📦 Will install $pkg"
+                MISSING_PKGS+=("$pkg")
+            fi
+        done
+        
+        if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
+            sudo pacman -S --noconfirm "${MISSING_PKGS[@]}"
+        else
+            echo "  ✅ All CLI tools already installed"
+        fi
+        
+        # Install zoxide (available in AUR, but we'll use the install script for simplicity)
+        if ! command -v zoxide &> /dev/null; then
+            echo "  Installing zoxide..."
+            curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
+            echo "  ✅ zoxide installed"
+        else
+            echo "  ✅ zoxide already installed"
+        fi
+        
+        # Install WezTerm (available in extra repository)
+        if ! command -v wezterm &> /dev/null; then
+            echo "🪟 Installing WezTerm..."
+            sudo pacman -S --noconfirm wezterm
+            echo "✅ WezTerm installed"
+        else
+            echo "✅ WezTerm already installed"
+        fi
+        
+        # Install ttf-nerd-fonts-symbols-mono (recommended for WezTerm on Arch)
+        if ! pacman -Qi ttf-nerd-fonts-symbols-mono &>/dev/null; then
+            echo "🔤 Installing Nerd Font symbols..."
+            sudo pacman -S --noconfirm ttf-nerd-fonts-symbols-mono
+            echo "✅ Nerd Font symbols installed"
+        else
+            echo "✅ Nerd Font symbols already installed"
+        fi
+        
+        echo "✅ CLI tools installed"
+        
+    elif command -v apt-get &> /dev/null; then
+        echo "📦 Installing CLI tools (Debian/Ubuntu)..."
         sudo apt-get update
 
         # Determine missing packages and install only those
@@ -208,7 +275,8 @@ else # Linux/WSL
             echo "✅ WezTerm already installed"
         fi
     else
-        echo "⚠️  apt-get not found, please install CLI tools manually"
+        echo "⚠️  Unsupported Linux distribution or package manager not found"
+        echo "   Please install CLI tools manually for your distribution"
     fi
 
     # Install starship
@@ -241,10 +309,26 @@ else # Linux/WSL
     # Install JetBrains Mono Nerd Font (Linux)
     if ! fc-list | grep -qi "JetBrainsMono Nerd Font"; then
         echo "🔤 Installing JetBrains Mono Nerd Font..."
-        mkdir -p ~/.local/share/fonts
-        wget -O ~/.local/share/fonts/JetBrainsMonoNerdFont.zip https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip
-        unzip -o ~/.local/share/fonts/JetBrainsMonoNerdFont.zip -d ~/.local/share/fonts/JetBrainsMono/
-        fc-cache -fv
+        if [ "$DISTRO" = "arch" ]; then
+            # Try to install via AUR helper (yay/paru) if available, otherwise manual install
+            if command -v yay &> /dev/null; then
+                yay -S --noconfirm ttf-jetbrains-mono-nerd
+            elif command -v paru &> /dev/null; then
+                paru -S --noconfirm ttf-jetbrains-mono-nerd
+            else
+                # Manual installation if no AUR helper
+                mkdir -p ~/.local/share/fonts
+                wget -O ~/.local/share/fonts/JetBrainsMonoNerdFont.zip https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip
+                unzip -o ~/.local/share/fonts/JetBrainsMonoNerdFont.zip -d ~/.local/share/fonts/JetBrainsMono/
+                fc-cache -fv
+            fi
+        else
+            # Debian/Ubuntu and other distros - manual installation
+            mkdir -p ~/.local/share/fonts
+            wget -O ~/.local/share/fonts/JetBrainsMonoNerdFont.zip https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip
+            unzip -o ~/.local/share/fonts/JetBrainsMonoNerdFont.zip -d ~/.local/share/fonts/JetBrainsMono/
+            fc-cache -fv
+        fi
         echo "✅ JetBrains Mono Nerd Font installed"
     else
         echo "✅ JetBrains Mono Nerd Font already installed"

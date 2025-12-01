@@ -2,20 +2,41 @@
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
 source "${ZINIT_HOME}/zinit.zsh"
 
-# Initialize Homebrew (check macOS and Linux locations)
-if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
-  # Linuxbrew (multi-user installation)
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-elif [[ -x "$HOME/.linuxbrew/bin/brew" ]]; then
-  # Linuxbrew (single-user installation)
-  eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
-elif [[ -x /opt/homebrew/bin/brew ]]; then
-  # macOS (Apple Silicon)
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-elif [[ -x /usr/local/bin/brew ]]; then
-  # macOS (Intel) or fallback
-  eval "$(/usr/local/bin/brew shellenv)"
+# Initialize Homebrew (macOS and Ubuntu/Debian only, not Arch)
+# Detect Linux distribution
+if [[ "$OSTYPE" != "darwin"* ]]; then
+  if [[ -f /etc/os-release ]]; then
+    DISTRO_ID=$(grep "^ID=" /etc/os-release | cut -d= -f2 | tr -d '"')
+  elif [[ -f /etc/arch-release ]]; then
+    DISTRO_ID="arch"
+  else
+    DISTRO_ID="unknown"
+  fi
+else
+  DISTRO_ID=""
 fi
+
+# Only initialize Homebrew on macOS or Ubuntu/Debian (not Arch)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # macOS - initialize Homebrew
+  if [[ -x /opt/homebrew/bin/brew ]]; then
+    # macOS (Apple Silicon)
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [[ -x /usr/local/bin/brew ]]; then
+    # macOS (Intel)
+    eval "$(/usr/local/bin/brew shellenv)"
+  fi
+elif [[ "$DISTRO_ID" == "ubuntu" ]] || [[ "$DISTRO_ID" == "debian" ]]; then
+  # Ubuntu/Debian - initialize Linuxbrew
+  if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+    # Linuxbrew (multi-user installation)
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  elif [[ -x "$HOME/.linuxbrew/bin/brew" ]]; then
+    # Linuxbrew (single-user installation)
+    eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
+  fi
+fi
+# Arch Linux and other distributions skip Homebrew initialization
 
 export LANG=en_US.UTF-8
 
