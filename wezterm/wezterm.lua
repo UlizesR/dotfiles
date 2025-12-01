@@ -147,7 +147,7 @@ config = {
         hinting = "Full",  -- Full hinting for crisp text like Kitty
         antialias = true,
     }),
-    font_size = 11.0,  -- Match Kitty's typical size
+    font_size = 10.0,  -- Match Kitty's typical size
     line_height = 1.1,  -- Slightly more spacing for readability
     
     -- DPI settings for better rendering on Wayland
