@@ -140,24 +140,27 @@ config = {
     window_close_confirmation = "NeverPrompt",
     window_decorations = "RESIZE",
 
-    -- Font settings
+    -- Font settings (tuned to match Kitty's appearance)
     font = wezterm.font("JetBrains Mono", { 
-        weight = "Bold",
-        -- Better font rendering for Wayland
-        hinting = "VerticalSubpixel",
+        weight = "Regular",  -- Changed from Bold to match Kitty
+        -- Font rendering optimized for Wayland/Hyprland
+        hinting = "Full",  -- Full hinting for crisp text like Kitty
         antialias = true,
     }),
-    font_size = 11.5,  -- Smaller size to match Kitty
-    line_height = 1.0,  -- Tighter line spacing
+    font_size = 11.0,  -- Match Kitty's typical size
+    line_height = 1.1,  -- Slightly more spacing for readability
     
     -- DPI settings for better rendering on Wayland
-    dpi = 96,  -- Adjust based on your display (96, 120, 144, 192)
+    -- Auto-detect DPI or set manually: 96, 120, 144, 192
+    -- dpi = 96,  -- Uncomment and adjust if needed
     
-    -- Font rendering options
-    font_rasterizer = "FreeType",  -- Better rendering
-    freetype_render_target = "Normal",  -- Normal for crisp text
-    freetype_load_target = "Normal",
-    freetype_interpreter_version = 40,  -- Version 40 for better rendering
+    -- Font rendering options (optimized for clarity)
+    font_rasterizer = "FreeType",
+    freetype_render_target = "Light",  -- Light render target for sharper text
+    freetype_load_target = "Light",
+    freetype_interpreter_version = 40,
+    font_hinting = "Full",  -- Full hinting for crisp rendering
+    font_antialias = "Greyscale",  -- Greyscale antialiasing for clarity
 
     -- Colors
     color_scheme = 'Catppuccin Mocha (Gogh)',
