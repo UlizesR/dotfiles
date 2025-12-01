@@ -90,8 +90,8 @@ end
 config = {
     automatically_reload_config = true,
 
-    -- Disable Wayland on Linux to avoid connection issues (use X11 instead)
-    enable_wayland = false,
+    -- Enable Wayland for Hyprland (disable if using X11)
+    enable_wayland = true,
 
     -- Keys
     disable_default_key_bindings = true,
@@ -141,8 +141,23 @@ config = {
     window_decorations = "RESIZE",
 
     -- Font settings
-    font = wezterm.font("JetBrains Mono", { weight = "Bold" }),
-    font_size = 14,
+    font = wezterm.font("JetBrains Mono", { 
+        weight = "Bold",
+        -- Better font rendering for Wayland
+        hinting = "VerticalSubpixel",
+        antialias = true,
+    }),
+    font_size = 11.5,  -- Smaller size to match Kitty
+    line_height = 1.0,  -- Tighter line spacing
+    
+    -- DPI settings for better rendering on Wayland
+    dpi = 96,  -- Adjust based on your display (96, 120, 144, 192)
+    
+    -- Font rendering options
+    font_rasterizer = "FreeType",  -- Better rendering
+    freetype_render_target = "Normal",  -- Normal for crisp text
+    freetype_load_target = "Normal",
+    freetype_interpreter_version = 40,  -- Version 40 for better rendering
 
     -- Colors
     color_scheme = 'Catppuccin Mocha (Gogh)',
