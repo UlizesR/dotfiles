@@ -110,7 +110,7 @@ config = {
         { key = "l",          mods = mod_key .. "|SHIFT",      action = act.ShowLauncher },
         -- Search
         { key = "f",          mods = mod_key,                  action = act.Search { CaseInSensitiveString = "" } },
-        { key = "F",          mods = mod_key .. "|SHIFT",      action = act.Search { CaseSensitiveString = "" } },
+        { key = "s",          mods = mod_key .. "|SHIFT",      action = act.Search { CaseSensitiveString = "" } },
         -- Quick select mode (vim-like selection)
         { key = "Space",      mods = mod_key .. "|SHIFT",      action = act.QuickSelect },
         
