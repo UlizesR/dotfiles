@@ -7,48 +7,19 @@ local config = {}
 -- Use config builder object if possible
 if wezterm.config_builder then config = wezterm.config_builder() end
 
--- Catppuccin Mocha Color Palette in Lua
-local catppuccin_mocha = {
-    rosewater = "#f5e0dc",
-    flamingo = "#f2cdcd",
-    pink = "#f5c2e7",
-    mauve = "#cba6f7",
-    red = "#f38ba8",
-    maroon = "#eba0ac",
-    peach = "#fab387",
-    yellow = "#f9e2af",
-    green = "#a6e3a1",
-    teal = "#94e2d5",
-    sky = "#89dceb",
-    sapphire = "#74c7ec",
-    blue = "#89b4fa",
-    lavender = "#b4befe",
-    text = "#cdd6f4",
-    subtext1 = "#bac2de",
-    subtext0 = "#a6adc8",
-    overlay2 = "#9399b2",
-    overlay1 = "#7f849c",
-    overlay0 = "#6c7086",
-    surface2 = "#585b70",
-    surface1 = "#45475a",
-    surface0 = "#313244",
-    base = "#1e1e2e",
-    mantle = "#181825",
-    crust = "#11111b"
-}
-
 local function basename(s)
     return string.gsub(s, '(.*[/\\])(.*)', '%2')
 end
 
 wezterm.on("format-tab-title", function(tab, tabs, panes, conf, hover, max_width)
-    local background = catppuccin_mocha.lavender
-    local foreground = catppuccin_mocha.base
-    local edge_background = "#282c35"
+    local colors = conf.resolved_palette
+    local background = colors.tab_bar.background
+    local foreground = colors.foreground
+    local edge_background = colors.background
 
     if tab.is_active or hover then
-        background = catppuccin_mocha.sky
-        foreground = catppuccin_mocha.surface2
+        background = colors.ansi[5] -- Cyan/Magenta for active tab
+        foreground = colors.background
     end
     local edge_foreground = background
 
@@ -106,6 +77,18 @@ config = {
         { key = "k",          mods = mod_key .. "|ALT",      action = act.ActivatePaneDirection("Up") },
         { key = "l",          mods = mod_key .. "|ALT",      action = act.ActivatePaneDirection("Right") },
         { key = "q",          mods = mod_key .. "|ALT",      action = act.CloseCurrentPane { confirm = true } },
+        -- Pane resizing
+        { key = "LeftArrow",  mods = mod_key .. "|SHIFT",    action = act.AdjustPaneSize { "Left", 5 } },
+        { key = "RightArrow", mods = mod_key .. "|SHIFT",    action = act.AdjustPaneSize { "Right", 5 } },
+        { key = "UpArrow",    mods = mod_key .. "|SHIFT",    action = act.AdjustPaneSize { "Up", 5 } },
+        { key = "DownArrow",  mods = mod_key .. "|SHIFT",    action = act.AdjustPaneSize { "Down", 5 } },
+        -- Pane zoom (temporary fullscreen for pane)
+        { key = "z",          mods = mod_key .. "|ALT",      action = act.TogglePaneZoomState },
+        -- Pane rotation
+        { key = "r",          mods = mod_key .. "|ALT",      action = act.RotatePanes "Clockwise" },
+        { key = "R",          mods = mod_key .. "|ALT|SHIFT", action = act.RotatePanes "CounterClockwise" },
+        -- Cycle through panes
+        { key = "Tab",        mods = mod_key .. "|ALT",      action = act.ActivatePaneDirection("Next") },
 
           -- Tab keybindings
         { key = "t",          mods = mod_key,                  action = act.SpawnTab("CurrentPaneDomain") },
@@ -121,6 +104,21 @@ config = {
 
         -- Window keybindings
         { key = "f",          mods = mod_key .. "|SHIFT",      action = act.ToggleFullScreen },
+        { key = "n",          mods = mod_key,                  action = act.SpawnWindow },
+        { key = "m",          mods = mod_key .. "|SHIFT",      action = act.Hide },
+        -- Launch menu
+        { key = "l",          mods = mod_key .. "|SHIFT",      action = act.ShowLauncher },
+        -- Search
+        { key = "f",          mods = mod_key,                  action = act.Search { CaseInSensitiveString = "" } },
+        { key = "F",          mods = mod_key .. "|SHIFT",      action = act.Search { CaseSensitiveString = "" } },
+        -- Quick select mode (vim-like selection)
+        { key = "Space",      mods = mod_key .. "|SHIFT",      action = act.QuickSelect },
+        
+        -- Zoom keybindings
+        { key = "=",          mods = mod_key,                  action = act.IncreaseFontSize },
+        { key = "+",          mods = mod_key .. "|SHIFT",      action = act.IncreaseFontSize },
+        { key = "-",          mods = mod_key,                  action = act.DecreaseFontSize },
+        { key = "0",          mods = mod_key,                  action = act.ResetFontSize },
 
         -- Terminal editing conveniences
         -- Alt+Backspace: delete previous word
@@ -139,21 +137,56 @@ config = {
 
     window_close_confirmation = "NeverPrompt",
     window_decorations = "RESIZE",
+    
+    -- Window padding
+    window_padding = {
+        left = 4,
+        right = 4,
+        top = 4,
+        bottom = 4,
+    },
+    
+    -- Scrollback buffer (increase from default 3500)
+    scrollback_lines = 10000,
+    
+    -- Cursor settings
+    default_cursor_style = "BlinkingBlock",
+    cursor_blink_rate = 500,
+    
+    -- Selection settings
+    selection_word_boundary = " \t\n{}[]()\"'`,;:",
+    
+    -- Enable hyperlinks
+    enable_kitty_graphics = true,
+    
+    -- Launch menu (quick access to common commands)
+    launch_menu = {
+        {
+            label = "Bash",
+            args = { "bash", "-l" },
+        },
+        {
+            label = "Zsh",
+            args = { "zsh", "-l" },
+        },
+        {
+            label = "Fish",
+            args = { "fish", "-l" },
+        },
+    },
 
     -- Font settings (optimized for crisp rendering on Wayland/Hyprland)
     font = wezterm.font("JetBrains Mono", { 
         weight = "Regular",
     }),
-    font_size = 10.0,
+    font_size = 12.0,
     line_height = 1.1,
     
     -- Font rendering options for maximum sharpness
     font_rasterizer = "FreeType",
-    font_hinting = "Full",
-    font_antialias = "Subpixel",
     
     -- FreeType settings for sharp rendering
-    freetype_render_target = "HorizontalLcd",  -- Optimized for LCD displays
+    freetype_render_target = "Normal",  -- Normal target for greyscale
     freetype_load_target = "Light",
     freetype_interpreter_version = 40,
     
@@ -161,23 +194,42 @@ config = {
     adjust_window_size_when_changing_font_size = false,
 
     -- Colors
-    color_scheme = 'Catppuccin Mocha (Gogh)',
+    color_scheme = 'tokyonight-storm',
     background = {
        {
             source = {
-                Color = "#282c35"
+                Color = "#24283b"
             },
             width = "100%",
             height = "100%",
             opacity = 0.9,
         },
     },
-    colors = {
-        tab_bar = {
-            background = 'rgba(40, 44, 53, 0.1)',
+    
+    -- Mouse bindings
+    mouse_bindings = {
+        -- Right click paste
+        {
+            event = { Down = { streak = 1, button = "Right" } },
+            mods = "NONE",
+            action = act.PasteFrom "Clipboard",
         },
-        split = catppuccin_mocha.sky,
-    }
+        -- Ctrl+Click to open hyperlinks
+        {
+            event = { Up = { streak = 1, button = "Left" } },
+            mods = "CTRL",
+            action = act.OpenLinkAtMouseCursor,
+        },
+    },
 }
+
+-- Status bar (right side) - must be outside config table
+wezterm.on("update-right-status", function(window, pane)
+    local date = wezterm.strftime("%Y-%m-%d %H:%M:%S")
+    window:set_right_status(wezterm.format({
+        { Foreground = { Color = "#a9b1d6" } },
+        { Text = date },
+    }))
+end)
 
 return config
