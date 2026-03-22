@@ -60,7 +60,13 @@ if [[ -n "$BREW_PREFIX" ]]; then
   export LDFLAGS="-L$BREW_PREFIX/lib -L/usr/local/lib -L$BREW_PREFIX/opt/llvm/lib"
   export CPPFLAGS="-I$BREW_PREFIX/include -I/usr/local/include -I$BREW_PREFIX/opt/llvm/include"
   export PKG_CONFIG_PATH="$BREW_PREFIX/opt/llvm/lib/pkgconfig"
-  export PATH="$BREW_PREFIX/opt/llvm/bin:/usr/local/bin:$PATH"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    # Use Apple Clang as default (finds macOS SDK). Use clang-XX for Homebrew LLVM.
+    export PATH="/usr/bin:$BREW_PREFIX/opt/llvm/bin:/usr/local/bin:$PATH"
+    export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+  else
+    export PATH="$BREW_PREFIX/opt/llvm/bin:/usr/local/bin:$PATH"
+  fi
 fi
 
 # Python virtualenv setup
@@ -136,3 +142,11 @@ export PATH="$HOME/CodeProjects/libgen/tools:$PATH"
 if command -v zoxide >/dev/null 2>&1; then
   eval "$(zoxide init --cmd cd zsh)"
 fi
+
+# bun completions
+[ -s "/Users/ulirodriguez/.bun/_bun" ] && source "/Users/ulirodriguez/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+export PATH=/Users/ulirodriguez/.local/bin:$PATH
