@@ -1,83 +1,74 @@
+local map = vim.keymap.set
 local opts = { noremap = true, silent = true }
 
-local term_opts = { silent = true }
-
--- Shorten function name
-local keymap = vim.api.nvim_set_keymap
-
---Remap space as leader key
-keymap("", "<Space>", "<Nop>", opts)
-vim.g.mapleader = " "
+-- Leader
+vim.g.mapleader      = " "
 vim.g.maplocalleader = " "
+map("", "<Space>", "<Nop>", opts)
 
--- Modes
---   normal_mode = "n",
---   insert_mode = "i",
---   visual_mode = "v",
---   visual_block_mode = "x",
---   term_mode = "t",
---   command_mode = "c",
+-- ── File / session ────────────────────────────────────────────────────────────
+map("n", "<leader>w", ":write<CR>",         { desc = "Save the current file" })
+map("n", "<leader>q", ":quit<CR>",          { desc = "Close the current window" })
+map("n", "<leader>Q", ":quit!<CR>",         { desc = "Force close without saving" })
+map("n", "<leader>v", ":edit $MYVIMRC<CR>", { desc = "Open your init.lua for editing" })
 
--- Normal --
--- Better window navigation
-keymap("n", "<C-h>", "<C-w>h", opts)
-keymap("n", "<C-j>", "<C-w>j", opts)
-keymap("n", "<C-k>", "<C-w>k", opts)
-keymap("n", "<C-l>", "<C-w>l", opts)
+-- ── Window navigation ─────────────────────────────────────────────────────────
+map("n", "<C-h>", "<C-w>h", { desc = "Move focus to the window on the left" })
+map("n", "<C-j>", "<C-w>j", { desc = "Move focus to the window below" })
+map("n", "<C-k>", "<C-w>k", { desc = "Move focus to the window above" })
+map("n", "<C-l>", "<C-w>l", { desc = "Move focus to the window on the right" })
 
-keymap("n", "<C-d>", "<C-d>zz", opts)
-keymap("n", "<C-u>", "<C-u>zz", opts)
+-- Resize splits
+map("n", "<C-Up>",    ":resize +1<CR>",          { desc = "Increase window height" })
+map("n", "<C-Down>",  ":resize -1<CR>",          { desc = "Decrease window height" })
+map("n", "<C-Left>",  ":vertical resize -1<CR>", { desc = "Decrease window width" })
+map("n", "<C-Right>", ":vertical resize +1<CR>", { desc = "Increase window width" })
 
--- Resize with arrows
-keymap("n", "<C-Up>", ":resize +1<CR>", opts)
-keymap("n", "<C-Down>", ":resize -1<CR>", opts)
-keymap("n", "<C-Left>", ":vertical resize -1<CR>", opts)
-keymap("n", "<C-Right>", ":vertical resize +1<CR>", opts)
+-- ── Scrolling ─────────────────────────────────────────────────────────────────
+map("n", "<C-d>", "<C-d>zz", { desc = "Scroll down half a page, keep cursor centred" })
+map("n", "<C-u>", "<C-u>zz", { desc = "Scroll up half a page, keep cursor centred" })
 
--- Navigate buffers
-keymap("n", "<S-l>", ":bnext<CR>", opts)
-keymap("n", "<S-h>", ":bprevious<CR>", opts)
+-- ── Search ────────────────────────────────────────────────────────────────────
+map("n", "n", "nzzzv", { desc = "Next search match, centred on screen" })
+map("n", "N", "Nzzzv", { desc = "Previous search match, centred on screen" })
 
--- Visual --
--- Stay in indent mode
-keymap("v", "<", "<gv", opts)
-keymap("v", ">", ">gv", opts)
+-- ── Buffers ───────────────────────────────────────────────────────────────────
+map("n", "<S-l>", ":bnext<CR>",     { desc = "Go to the next open buffer" })
+map("n", "<S-h>", ":bprevious<CR>", { desc = "Go to the previous open buffer" })
 
-keymap("n", "Q", "<nop>", opts)
+-- ── Clipboard ─────────────────────────────────────────────────────────────────
+map("v", "<leader>y", '"+y', { desc = "Yank selection to the system clipboard" })
 
--- VSCode-like keybindings
--- Duplicate line up/down (Alt/Option + Shift + Arrow)
-keymap("n", "<A-S-Up>", ":t.-1<CR>", opts)
-keymap("n", "<A-S-Down>", ":t.<CR>", opts)
-keymap("i", "<A-S-Up>", "<Esc>:t.-1<CR>gi", opts)
-keymap("i", "<A-S-Down>", "<Esc>:t.<CR>gi", opts)
-keymap("v", "<A-S-Up>", ":t'<-1<CR>gv", opts)
-keymap("v", "<A-S-Down>", ":t'>+1<CR>gv", opts)
+-- ── Indenting ─────────────────────────────────────────────────────────────────
+map("v", "<", "<gv", { desc = "Indent selection left and re-select" })
+map("v", ">", ">gv", { desc = "Indent selection right and re-select" })
 
--- Select all (Command/Ctrl + A)
-keymap("n", "<D-a>", "ggVG", opts)
-keymap("n", "<C-a>", "ggVG", opts)
-keymap("i", "<D-a>", "<Esc>ggVG", opts)
-keymap("i", "<C-a>", "<Esc>ggVG", opts)
-keymap("v", "<D-a>", "<Esc>ggVG", opts)
-keymap("v", "<C-a>", "<Esc>ggVG", opts)
+-- ── Move lines ────────────────────────────────────────────────────────────────
+map("v", "<A-j>", ":m '>+1<CR>gv=gv",  { desc = "Move selected lines down" })
+map("v", "<A-k>", ":m '<-2<CR>gv=gv",  { desc = "Move selected lines up" })
+map("x", "<A-j>", ":move '>+1<CR>gv=gv", { desc = "Move selected block down" })
+map("x", "<A-k>", ":move '<-2<CR>gv=gv", { desc = "Move selected block up" })
 
--- Move text up and down
-keymap("v", "<A-j>", ":m .+1<CR>==", opts)
-keymap("v", "<A-k>", ":m .-2<CR>==", opts)
-keymap("v", "p", '"_dP', opts)
+-- Duplicate current line
+map("n", "<A-S-Down>", ":t.<CR>",   { desc = "Duplicate current line below" })
+map("n", "<A-S-Up>",   ":t.-1<CR>", { desc = "Duplicate current line above" })
 
--- Visual Block --
--- Move text up and down
-keymap("x", "J", ":move '>+1<CR>gv=gv", opts)
-keymap("x", "K", ":move '<-2<CR>gv=gv", opts)
-keymap("x", "<A-j>", ":move '>+1<CR>gv=gv", opts)
-keymap("x", "<A-k>", ":move '<-2<CR>gv=gv", opts)
-keymap("x", "p", '"_dP', opts)
+-- ── Paste without clobbering register ─────────────────────────────────────────
+map("v", "p", '"_dP', { desc = "Paste over selection without losing yanked text" })
+map("x", "p", '"_dP', { desc = "Paste over block without losing yanked text" })
 
--- Terminal --
--- Better terminal navigation
-keymap("t", "<C-h>", "<C-\\><C-N><C-w>h", term_opts)
-keymap("t", "<C-j>", "<C-\\><C-N><C-w>j", term_opts)
-keymap("t", "<C-k>", "<C-\\><C-N><C-w>k", term_opts)
-keymap("t", "<C-l>", "<C-\\><C-N><C-w>l", term_opts)
+-- ── Terminal ──────────────────────────────────────────────────────────────────
+map("t", "<ESC>",  "<C-\\><C-n>",       { silent = true, desc = "Exit terminal insert mode" })
+map("t", "<C-h>",  "<C-\\><C-N><C-w>h", { silent = true, desc = "Terminal: move focus left" })
+map("t", "<C-j>",  "<C-\\><C-N><C-w>j", { silent = true, desc = "Terminal: move focus down" })
+map("t", "<C-k>",  "<C-\\><C-N><C-w>k", { silent = true, desc = "Terminal: move focus up" })
+map("t", "<C-l>",  "<C-\\><C-N><C-w>l", { silent = true, desc = "Terminal: move focus right" })
+map("n", "<A-h>",  ":below term<CR>i",  { desc = "Open a terminal split below" })
+
+-- ── Misc ──────────────────────────────────────────────────────────────────────
+map("n", "Q",         "<Nop>",  { desc = "Disabled (prevents accidental Ex mode)" })
+map("n", "<C-a>",     "ggVG",   { desc = "Select all text in the file" })
+map("n", "<leader>k", "<cmd>lua vim.diagnostic.open_float()<cr>", { desc = "Show diagnostics for current line" })
+
+-- ── Which-key ─────────────────────────────────────────────────────────────────
+map("n", "<leader>?", ":WhichKey<CR>", { desc = "Browse all keymaps" })

@@ -8,43 +8,36 @@ return {
   },
 
   config = function()
-    vim.api.nvim_create_autocmd('LspAttach', {
-      desc = 'LSP actions',
+    -- ── LSP keymaps (attached per-buffer) ──────────────────────────────────────
+    vim.api.nvim_create_autocmd("LspAttach", {
+      desc = "LSP actions",
       callback = function(event)
-        local opts = {buffer = event.buf}
-
-        vim.keymap.set('n', 'K', '<cmd>lua vim.lsp.buf.hover()<cr>', opts)
-        vim.keymap.set('n', '<leader>k', '<cmd>lua vim.diagnostic.open_float()<cr>', opts)
-        vim.keymap.set('n', 'gd', '<cmd>lua vim.lsp.buf.definition()<cr>', opts)
-        vim.keymap.set('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<cr>', opts)
-        vim.keymap.set('n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<cr>', opts)
-        vim.keymap.set('n', 'go', '<cmd>lua vim.lsp.buf.type_definition()<cr>', opts)
-        vim.keymap.set('n', 'gr', '<cmd>lua vim.lsp.buf.references()<cr>', opts)
-        vim.keymap.set('n', 'gs', '<cmd>lua vim.lsp.buf.signature_help()<cr>', opts)
-        vim.keymap.set('n', '<F2>', '<cmd>lua vim.lsp.buf.rename()<cr>', opts)
-        vim.keymap.set('n', '<F4>', '<cmd>lua vim.lsp.buf.code_action()<cr>', opts)
+        local o = { buffer = event.buf }
+        vim.keymap.set("n", "K",    "<cmd>lua vim.lsp.buf.hover()<cr>",           vim.tbl_extend("force", o, { desc = "Show docs for symbol under cursor" }))
+        vim.keymap.set("n", "gd",   "<cmd>lua vim.lsp.buf.definition()<cr>",      vim.tbl_extend("force", o, { desc = "Go to definition" }))
+        vim.keymap.set("n", "gD",   "<cmd>lua vim.lsp.buf.declaration()<cr>",     vim.tbl_extend("force", o, { desc = "Go to declaration" }))
+        vim.keymap.set("n", "gi",   "<cmd>lua vim.lsp.buf.implementation()<cr>",  vim.tbl_extend("force", o, { desc = "Go to implementation" }))
+        vim.keymap.set("n", "go",   "<cmd>lua vim.lsp.buf.type_definition()<cr>", vim.tbl_extend("force", o, { desc = "Go to type definition" }))
+        vim.keymap.set("n", "gr",   "<cmd>lua vim.lsp.buf.references()<cr>",      vim.tbl_extend("force", o, { desc = "List all references to symbol" }))
+        vim.keymap.set("n", "gs",   "<cmd>lua vim.lsp.buf.signature_help()<cr>",  vim.tbl_extend("force", o, { desc = "Show function signature help" }))
+        vim.keymap.set("n", "<F2>", "<cmd>lua vim.lsp.buf.rename()<cr>",          vim.tbl_extend("force", o, { desc = "Rename symbol under cursor" }))
+        vim.keymap.set("n", "<F4>", "<cmd>lua vim.lsp.buf.code_action()<cr>",     vim.tbl_extend("force", o, { desc = "Show available code actions" }))
       end,
     })
 
+    -- ── Mason ──────────────────────────────────────────────────────────────────
+    require("mason").setup()
 
-    -- Mason setup
-    require("mason").setup({
-      ensure_installed = {
-        "clangd",        -- C/C++/Objective-C
-        "pyright",       -- Python
-        "rust-analyzer", -- Rust
-      },
-    })
-
-    -- Mason-lspconfig setup
     require("mason-lspconfig").setup({
+      ensure_installed = { "clangd", "pyright", "rust_analyzer" },
       handlers = {
-        -- Default handler for automatically configuring installed servers
+        -- Default: auto-configure everything
         function(server_name)
-          require("lspconfig")[server_name].setup({}) end,
+          require("lspconfig")[server_name].setup({})
+        end,
 
-        -- Custom handlers for specific servers
-        clangd = function(_, opts)
+        -- C/C++/ObjC: extra flags
+        clangd = function()
           require("lspconfig").clangd.setup({
             cmd = {
               "clangd",
@@ -57,106 +50,53 @@ return {
             filetypes = { "c", "cpp", "objc", "objcpp" },
           })
         end,
-
-        pyright = function(_, opts)
-          require("lspconfig").pyright.setup(opts)
-        end,
-
-        rust_analyzer = function(_, opts)
-          require("lspconfig").rust_analyzer.setup(opts)
-        end,
       },
     })
 
+    -- ── Completion ─────────────────────────────────────────────────────────────
     local cmp = require("cmp")
 
-    --   פּ ﯟ   some other good icons
     local kind_icons = {
-      Text = "",
-      Method = "m",
-      Function = "",
-      Constructor = "",
-      Field = "",
-      Variable = "",
-      Class = "",
-      Interface = "",
-      Module = "",
-      Property = "",
-      Unit = "",
-      Value = "",
-      Enum = "",
-      Keyword = "",
-      Snippet = "",
-      Color = "",
-      File = "",
-      Reference = "",
-      Folder = "",
-      EnumMember = "",
-      Constant = "",
-      Struct = "",
-      Event = "",
-      Operator = "",
-      TypeParameter = "",
+      Text = "", Method = "m", Function = "", Constructor = "",
+      Field = "", Variable = "", Class = "", Interface = "",
+      Module = "", Property = "", Unit = "", Value = "",
+      Enum = "", Keyword = "", Snippet = "", Color = "",
+      File = "", Reference = "", Folder = "", EnumMember = "",
+      Constant = "", Struct = "", Event = "", Operator = "",
+      TypeParameter = "",
     }
-    -- find more here: https://www.nerdfonts.com/cheat-sheet
 
     cmp.setup({
-      sources = {
-        {name = "nvim_lsp"},
+      sources = { { name = "nvim_lsp" } },
+
+      mapping = cmp.mapping.preset.insert({
+        ["<C-k>"]     = cmp.mapping.select_prev_item(),
+        ["<C-j>"]     = cmp.mapping.select_next_item(),
+        ["<C-b>"]     = cmp.mapping.scroll_docs(-1),
+        ["<C-f>"]     = cmp.mapping.scroll_docs(1),
+        ["<C-Space>"] = cmp.mapping.complete(),
+        ["<C-e>"]     = cmp.mapping.abort(),
+        ["<CR>"]      = cmp.mapping.confirm({ select = false }),
+        ["<Tab>"] = cmp.mapping(function(fallback)
+          if cmp.visible() then cmp.select_next_item() else fallback() end
+        end, { "i", "s" }),
+        ["<S-Tab>"] = cmp.mapping(function(fallback)
+          if cmp.visible() then cmp.select_prev_item() else fallback() end
+        end, { "i", "s" }),
+      }),
+
+      formatting = {
+        fields = { "kind", "abbr", "menu" },
+        format = function(entry, vim_item)
+          vim_item.kind = string.format("%s", kind_icons[vim_item.kind])
+          vim_item.menu = ({
+            nvim_lsp = "[LSP]",
+            buffer   = "[Buffer]",
+            path     = "[Path]",
+          })[entry.source.name]
+          return vim_item
+        end,
       },
-
-     mapping = {
-       ["<C-k>"] = cmp.mapping.select_prev_item(),
-       ["<C-j>"] = cmp.mapping.select_next_item(),
-       ["<C-b>"] = cmp.mapping(cmp.mapping.scroll_docs(-1), { "i", "c" }),
-       ["<C-f>"] = cmp.mapping(cmp.mapping.scroll_docs(1), { "i", "c" }),
-       ["<C-Space>"] = cmp.mapping(cmp.mapping.complete(), { "i", "c" }),
-       ["<C-y>"] = cmp.config.disable, -- Specify `cmp.config.disable` if you want to remove the default `<C-y>` mapping.
-       ["<C-e>"] = cmp.mapping {
-         i = cmp.mapping.abort(),
-         c = cmp.mapping.close(),
-       },
-       -- Accept currently selected item. If none selected, `select` first item.
-       -- Set `select` to `false` to only confirm explicitly selected items.
-       ["<CR>"] = cmp.mapping.confirm { select = false },
-       ["<Tab>"] = cmp.mapping(function(fallback)
-         if cmp.visible() then
-           cmp.select_next_item()
-         else
-           fallback()
-         end
-       end, {
-         "i",
-         "s",
-       }),
-       ["<S-Tab>"] = cmp.mapping(function(fallback)
-         if cmp.visible() then
-           cmp.select_prev_item()
-         else
-           fallback()
-         end
-       end, {
-         "i",
-         "s",
-       }),
-     },
-
-    formatting = {
-      fields = { "kind", "abbr", "menu" },
-      format = function(entry, vim_item)
-        -- Kind icons
-        vim_item.kind = string.format("%s", kind_icons[vim_item.kind])
-        -- vim_item.kind = string.format('%s %s', kind_icons[vim_item.kind], vim_item.kind) -- This concatonates the icons with the name of the item kind
-        vim_item.menu = ({
-          nvim_lsp = "[LSP]",
-          --nvim_lsp_signature_help = "[LSP-Signature]",
-          buffer = "[Buffer]",
-          path = "[Path]",
-        })[entry.source.name]
-        return vim_item
-      end,
-    }
-  })
-  end
+    })
+  end,
 }
-

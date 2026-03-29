@@ -1,69 +1,78 @@
 local options = {
-  backup = false,
-  clipboard = "unnamedplus",
-  cmdheight = 2,
-  completeopt = { "menuone", "noselect" },
-  conceallevel = 0,
-  fileencoding = "utf-8",
-  hlsearch = true,
+  -- Files & history
+  backup      = false,
+  writebackup = false,
+  swapfile    = false,
+  undofile    = true,
+  undodir     = os.getenv("HOME") .. "/.cache/nvim/undodir",
+
+  -- Editing
+  clipboard    = "unnamedplus",
+  expandtab    = true,
+  shiftwidth   = 4,
+  tabstop      = 4,
+  smartindent  = true,
+  list         = true,   -- show whitespace characters
+
+  -- Search
+  hlsearch  = true,
   incsearch = true,
   ignorecase = true,
-  ro = false,
-  mouse = "a",
-  pumheight = 10,
-  showmode = false,
-  showtabline = 2,
-  smartcase = true,
-  smartindent = true,
+  smartcase  = true,
+
+  -- UI
+  number         = true,
+  relativenumber = false,
+  numberwidth    = 4,
+  cursorline     = false,
+  signcolumn     = "yes",
+  wrap           = false,
+  showmode       = false,
+  showtabline    = 2,
+  pumheight      = 10,
+  cmdheight      = 2,
+  termguicolors  = true,
+  conceallevel   = 0,
+  scrolloff      = 4,
+  sidescrolloff  = 4,
+
+  -- Splits
   splitbelow = true,
   splitright = true,
-  swapfile = false,
-  termguicolors = true,
+
+  -- Performance
   timeoutlen = 1000,
-  undofile = true,
   updatetime = 300,
-  writebackup = false,
-  expandtab = true,
-  shiftwidth = 4,
-  tabstop = 4,
-  cursorline = false,
-  number = true,
-  relativenumber = false,
-  numberwidth = 4,
-  signcolumn = "yes",
-  wrap = false,
-  scrolloff = 4,
-  sidescrolloff = 4,
+
+  -- Encoding
+  fileencoding = "utf-8",
+
+  completeopt = { "menuone", "noselect" },
 }
 
 for k, v in pairs(options) do
-    vim.opt[k] = v
+  vim.opt[k] = v
 end
 
--- Create an autocommand group for file-specific settings
-vim.api.nvim_create_augroup("FileTypeSpecific", { clear = true })
-
--- Set shiftwidth and tabstop to 2 for Lua files (for nvim config)
-vim.api.nvim_create_autocmd("FileType", {
-    pattern = { "lua" },
-    callback = function()
-        vim.opt_local.shiftwidth = 2
-        vim.opt_local.tabstop = 2
-    end,
-    group = "FileTypeSpecific",
-})
-
--- Filetype detection for shader and compute languages
-vim.filetype.add({
-    extension = {
-        metal = 'cpp',     -- Metal uses C++ highlighting
-        cl = 'c',          -- OpenCL files
-        mm = 'objc',       -- Objective-C++
-    },
-})
-
+vim.opt.shortmess:append("c")
 vim.cmd("autocmd BufEnter * set formatoptions-=cro")
-vim.cmd("autocmd BufEnter * setlocal formatoptions-=cro")
 
-vim.opt.shortmess:append "c"
+-- File-type specific indentation
+vim.api.nvim_create_augroup("FileTypeSpecific", { clear = true })
+vim.api.nvim_create_autocmd("FileType", {
+  group   = "FileTypeSpecific",
+  pattern = { "lua" },
+  callback = function()
+    vim.opt_local.shiftwidth = 2
+    vim.opt_local.tabstop    = 2
+  end,
+})
 
+-- Shader / compute filetype detection
+vim.filetype.add({
+  extension = {
+    metal = "cpp",
+    cl    = "c",
+    mm    = "objc",
+  },
+})
