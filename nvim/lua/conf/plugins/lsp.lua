@@ -29,11 +29,30 @@ return {
     require("mason").setup()
 
     require("mason-lspconfig").setup({
-      ensure_installed = { "clangd", "pyright", "rust_analyzer" },
+      ensure_installed = { "clangd", "pyright", "rust_analyzer", "texlab" },
       handlers = {
         -- Default: auto-configure everything
         function(server_name)
           require("lspconfig")[server_name].setup({})
+        end,
+
+        -- LaTeX / BibTeX
+        texlab = function()
+          require("lspconfig").texlab.setup({
+            settings = {
+              texlab = {
+                build = {
+                  executable = "latexmk",
+                  args = { "-pdf", "-interaction=nonstopmode", "-synctex=1", "%f" },
+                  onSave = false,
+                  forwardSearchAfter = false,
+                },
+                chktex = {
+                  onOpenAndSave = true,
+                },
+              },
+            },
+          })
         end,
 
         -- C/C++/ObjC: extra flags
@@ -100,3 +119,4 @@ return {
     })
   end,
 }
+

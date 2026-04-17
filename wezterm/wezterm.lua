@@ -1,235 +1,194 @@
-local wezterm = require('wezterm');
+local wezterm = require('wezterm')
+local act     = wezterm.action
 
--- Import actions
-local act = wezterm.action
+local config = wezterm.config_builder and wezterm.config_builder() or {}
 
-local config = {}
--- Use config builder object if possible
-if wezterm.config_builder then config = wezterm.config_builder() end
-
+-- ── Helpers ───────────────────────────────────────────────────────────────────
 local function basename(s)
-    return string.gsub(s, '(.*[/\\])(.*)', '%2')
+  return string.gsub(s, '(.*[/\\])(.*)', '%2')
 end
 
+-- Detect platform: CTRL on Linux/Windows, CMD on macOS
+local is_macos = wezterm.target_triple:find("apple") ~= nil
+local mod      = is_macos and "CMD" or "CTRL"
+
+-- ── Tab title ─────────────────────────────────────────────────────────────────
 wezterm.on("format-tab-title", function(tab, tabs, panes, conf, hover, max_width)
-    local colors = conf.resolved_palette
-    local background = colors.tab_bar.background
-    local foreground = colors.foreground
-    local edge_background = colors.background
+  local colors      = conf.resolved_palette
+  local bg          = colors.tab_bar.background
+  local fg          = colors.foreground
+  local edge_bg     = colors.background
 
-    if tab.is_active or hover then
-        background = colors.ansi[5] -- Cyan/Magenta for active tab
-        foreground = colors.background
-    end
-    local edge_foreground = background
+  if tab.is_active or hover then
+    bg = colors.ansi[5]   -- Magenta for active / hovered tab
+    fg = colors.background
+  end
 
-    -- set the title to the current open file or directory
-    local pane = tab.active_pane
-    local cwd = pane.current_working_dir
-    local cwd_string = tostring(cwd)
-    local title = basename(cwd_string)
+  local title = basename(tostring(tab.active_pane.current_working_dir))
+  local max   = config.tab_max_width or 32
+  if #title > max then
+    title = wezterm.truncate_right(title, max) .. "…"
+  end
 
-    -- ensure that the titles fit in the available space,
-    -- and that we have room for the edges.
-    local max = config.tab_max_width
-    if #title > max then
-        title = wezterm.truncate_right(title, max) .. "…"
-    end
-
-    return {
-        { Background = { Color = edge_background } },
-        { Foreground = { Color = edge_foreground } },
-        { Text = tab.tab_index == 0 and " " or "" },
-        { Background = { Color = background } },
-        { Foreground = { Color = foreground } },
-        { Attribute = { Intensity = tab.is_active and "Bold" or "Normal" } },
-        { Text = " " .. (tab.tab_index + 1) .. ": " .. title .. " " },
-        { Background = { Color = edge_background } },
-        { Foreground = { Color = edge_foreground } },
-        { Text = "" },
-    }
+  return {
+    { Background = { Color = edge_bg } }, { Foreground = { Color = bg } },
+    { Text = tab.tab_index == 0 and " " or "" },
+    { Background = { Color = bg } },     { Foreground = { Color = fg } },
+    { Attribute = { Intensity = tab.is_active and "Bold" or "Normal" } },
+    { Text = " " .. (tab.tab_index + 1) .. ": " .. title .. " " },
+    { Background = { Color = edge_bg } }, { Foreground = { Color = bg } },
+    { Text = "" },
+  }
 end)
 
--- if OS is macOS, set CMD as the mod key
--- otherwise, set CTRL as the mod key
-local mod_key = "CTRL"
-local is_macos = wezterm.target_triple == "x86_64-apple-darwin" or wezterm.target_triple == "aarch64-apple-darwin"
-if is_macos then
-    mod_key = "CMD"
-end
+-- ── Right-side status bar ─────────────────────────────────────────────────────
+wezterm.on("update-right-status", function(window)
+  window:set_right_status(wezterm.format({
+    { Foreground = { Color = "#a9b1d6" } },
+    { Text = wezterm.strftime("%Y-%m-%d  %H:%M:%S  ") },
+  }))
+end)
 
-config = {
-    automatically_reload_config = true,
+-- ── Key bindings ──────────────────────────────────────────────────────────────
+local keys = {
+  -- ── Panes ──────────────────────────────────────────────────────────────────
+  { key = "s",          mods = mod .. "|ALT",       action = act.SplitVertical   { domain = "CurrentPaneDomain" } },
+  { key = "v",          mods = mod .. "|ALT",       action = act.SplitHorizontal { domain = "CurrentPaneDomain" } },
+  { key = "h",          mods = mod .. "|ALT",       action = act.ActivatePaneDirection("Left")  },
+  { key = "j",          mods = mod .. "|ALT",       action = act.ActivatePaneDirection("Down")  },
+  { key = "k",          mods = mod .. "|ALT",       action = act.ActivatePaneDirection("Up")    },
+  { key = "l",          mods = mod .. "|ALT",       action = act.ActivatePaneDirection("Right") },
+  { key = "q",          mods = mod .. "|ALT",       action = act.CloseCurrentPane { confirm = true } },
+  { key = "z",          mods = mod .. "|ALT",       action = act.TogglePaneZoomState },
+  { key = "r",          mods = mod .. "|ALT",       action = act.RotatePanes "Clockwise" },
+  { key = "R",          mods = mod .. "|ALT|SHIFT", action = act.RotatePanes "CounterClockwise" },
+  { key = "Tab",        mods = mod .. "|ALT",       action = act.ActivatePaneDirection("Next") },
 
-    -- Enable Wayland for Hyprland (disable if using X11)
-    enable_wayland = true,
+  -- ── Pane resize ────────────────────────────────────────────────────────────
+  { key = "LeftArrow",  mods = mod .. "|SHIFT",     action = act.AdjustPaneSize { "Left",  5 } },
+  { key = "RightArrow", mods = mod .. "|SHIFT",     action = act.AdjustPaneSize { "Right", 5 } },
+  { key = "UpArrow",    mods = mod .. "|SHIFT",     action = act.AdjustPaneSize { "Up",    5 } },
+  { key = "DownArrow",  mods = mod .. "|SHIFT",     action = act.AdjustPaneSize { "Down",  5 } },
 
-    -- Keys
-    disable_default_key_bindings = true,
+  -- ── Tabs ───────────────────────────────────────────────────────────────────
+  { key = "t",          mods = mod,                 action = act.SpawnTab("CurrentPaneDomain") },
+  { key = "[",          mods = mod .. "|SHIFT",     action = act.ActivateTabRelative(-1) },
+  { key = "]",          mods = mod .. "|SHIFT",     action = act.ActivateTabRelative(1)  },
+  { key = "n",          mods = mod .. "|SHIFT",     action = act.ShowTabNavigator },
+  { key = "w",          mods = mod .. "|SHIFT",     action = act.CloseCurrentTab { confirm = true } },
 
-    keys = {
+  -- ── Clipboard ──────────────────────────────────────────────────────────────
+  { key = "c",          mods = mod,                 action = act.CopyTo "ClipboardAndPrimarySelection" },
+  { key = "v",          mods = mod,                 action = act.PasteFrom "Clipboard" },
+  { key = "c",          mods = mod .. "|SHIFT",     action = act.CopyTo "PrimarySelection" },
 
-        -- Pane keybindings
-        { key = "s",          mods = mod_key .. "|ALT",      action = act.SplitVertical { domain = "CurrentPaneDomain" } },
-        { key = "v",          mods = mod_key .. "|ALT",      action = act.SplitHorizontal { domain = "CurrentPaneDomain" } },
-        { key = "h",          mods = mod_key .. "|ALT",      action = act.ActivatePaneDirection("Left") },
-        { key = "j",          mods = mod_key .. "|ALT",      action = act.ActivatePaneDirection("Down") },
-        { key = "k",          mods = mod_key .. "|ALT",      action = act.ActivatePaneDirection("Up") },
-        { key = "l",          mods = mod_key .. "|ALT",      action = act.ActivatePaneDirection("Right") },
-        { key = "q",          mods = mod_key .. "|ALT",      action = act.CloseCurrentPane { confirm = true } },
-        -- Pane resizing
-        { key = "LeftArrow",  mods = mod_key .. "|SHIFT",    action = act.AdjustPaneSize { "Left", 5 } },
-        { key = "RightArrow", mods = mod_key .. "|SHIFT",    action = act.AdjustPaneSize { "Right", 5 } },
-        { key = "UpArrow",    mods = mod_key .. "|SHIFT",    action = act.AdjustPaneSize { "Up", 5 } },
-        { key = "DownArrow",  mods = mod_key .. "|SHIFT",    action = act.AdjustPaneSize { "Down", 5 } },
-        -- Pane zoom (temporary fullscreen for pane)
-        { key = "z",          mods = mod_key .. "|ALT",      action = act.TogglePaneZoomState },
-        -- Pane rotation
-        { key = "r",          mods = mod_key .. "|ALT",      action = act.RotatePanes "Clockwise" },
-        { key = "R",          mods = mod_key .. "|ALT|SHIFT", action = act.RotatePanes "CounterClockwise" },
-        -- Cycle through panes
-        { key = "Tab",        mods = mod_key .. "|ALT",      action = act.ActivatePaneDirection("Next") },
+  -- ── Window ─────────────────────────────────────────────────────────────────
+  { key = "f",          mods = mod .. "|SHIFT",     action = act.ToggleFullScreen },
+  { key = "n",          mods = mod,                 action = act.SpawnWindow },
+  { key = "m",          mods = mod .. "|SHIFT",     action = act.Hide },
+  { key = "l",          mods = mod .. "|SHIFT",     action = act.ShowLauncher },
+  { key = "Space",      mods = mod .. "|SHIFT",     action = act.QuickSelect },
 
-          -- Tab keybindings
-        { key = "t",          mods = mod_key,                  action = act.SpawnTab("CurrentPaneDomain") },
-        { key = "[",          mods = mod_key .. "|SHIFT",      action = act.ActivateTabRelative(-1) },
-        { key = "]",          mods = mod_key .. "|SHIFT",      action = act.ActivateTabRelative(1) },
-        { key = "n",          mods = mod_key .. "|SHIFT",      action = act.ShowTabNavigator },
-        { key = "w",          mods = mod_key .. "|SHIFT",      action = act.CloseCurrentTab { confirm = true } },
+  -- ── Search ─────────────────────────────────────────────────────────────────
+  { key = "f",          mods = mod,                 action = act.Search { CaseInSensitiveString = "" } },
+  { key = "s",          mods = mod .. "|SHIFT",     action = act.Search { CaseSensitiveString  = "" } },
 
-        -- Clipboard keybindings
-        { key = "c",          mods = mod_key,                  action = act.CopyTo "ClipboardAndPrimarySelection" },
-        { key = "v",          mods = mod_key,                  action = act.PasteFrom "Clipboard" },
-        { key = "c",          mods = mod_key .. "|SHIFT",      action = act.CopyTo "PrimarySelection" },
+  -- ── Font size ──────────────────────────────────────────────────────────────
+  { key = "=",          mods = mod,                 action = act.IncreaseFontSize },
+  { key = "+",          mods = mod .. "|SHIFT",     action = act.IncreaseFontSize },
+  { key = "-",          mods = mod,                 action = act.DecreaseFontSize },
+  { key = "0",          mods = mod,                 action = act.ResetFontSize    },
 
-        -- Window keybindings
-        { key = "f",          mods = mod_key .. "|SHIFT",      action = act.ToggleFullScreen },
-        { key = "n",          mods = mod_key,                  action = act.SpawnWindow },
-        { key = "m",          mods = mod_key .. "|SHIFT",      action = act.Hide },
-        -- Launch menu
-        { key = "l",          mods = mod_key .. "|SHIFT",      action = act.ShowLauncher },
-        -- Search
-        { key = "f",          mods = mod_key,                  action = act.Search { CaseInSensitiveString = "" } },
-        { key = "s",          mods = mod_key .. "|SHIFT",      action = act.Search { CaseSensitiveString = "" } },
-        -- Quick select mode (vim-like selection)
-        { key = "Space",      mods = mod_key .. "|SHIFT",      action = act.QuickSelect },
-        
-        -- Zoom keybindings
-        { key = "=",          mods = mod_key,                  action = act.IncreaseFontSize },
-        { key = "+",          mods = mod_key .. "|SHIFT",      action = act.IncreaseFontSize },
-        { key = "-",          mods = mod_key,                  action = act.DecreaseFontSize },
-        { key = "0",          mods = mod_key,                  action = act.ResetFontSize },
+  -- ── Editing conveniences ───────────────────────────────────────────────────
+  { key = "Backspace",  mods = "ALT",               action = act.SendKey { key = "w", mods = "CTRL" } }, -- delete word
+  { key = "Backspace",  mods = "CTRL",              action = act.SendKey { key = "u", mods = "CTRL" } }, -- delete to BOL
+  { key = "Backspace",  mods = "CMD",               action = act.SendKey { key = "u", mods = "CTRL" } }, -- macOS: delete to BOL
 
-        -- Terminal editing conveniences
-        -- Alt+Backspace: delete previous word
-        { key = "Backspace",  mods = "ALT",                   action = act.SendKey { key = "w", mods = "CTRL" } },
-        -- Ctrl+Backspace: delete to start of line
-        { key = "Backspace",  mods = "CTRL",                  action = act.SendKey { key = "u", mods = "CTRL" } },
-        -- Cmd+Backspace (macOS): delete to start of line
-        { key = "Backspace",  mods = "CMD",                   action = act.SendKey { key = "u", mods = "CTRL" } },
-
+  -- ── Keybindings help overlay ───────────────────────────────────────────────
+  -- CMD+/ (macOS) or CTRL+/ (Linux) — opens a new tab with all keybindings.
+  -- '/' needs no Shift, so WezTerm receives it cleanly with no OS conflicts.
+  {
+    key = "/", mods = mod,
+    action = act.SpawnCommandInNewTab {
+      args = { os.getenv("SHELL") or "zsh", "-ic",
+               "wezkeys; echo; printf 'Press Enter to close…'; read" },
     },
-
-    -- Tab settings 
-    tab_max_width = 32,
-    use_fancy_tab_bar = false,
-    show_new_tab_button_in_tab_bar = false,
-
-    window_close_confirmation = "NeverPrompt",
-    window_decorations = "RESIZE",
-    
-    -- Window padding
-    window_padding = {
-        left = 4,
-        right = 4,
-        top = 4,
-        bottom = 4,
-    },
-    
-    -- Scrollback buffer (increase from default 3500)
-    scrollback_lines = 10000,
-    
-    -- Cursor settings
-    default_cursor_style = "BlinkingBlock",
-    cursor_blink_rate = 500,
-    
-    -- Selection settings
-    selection_word_boundary = " \t\n{}[]()\"'`,;:",
-    
-    -- Enable hyperlinks
-    enable_kitty_graphics = true,
-    
-    -- Launch menu (quick access to common commands)
-    launch_menu = {
-        {
-            label = "Bash",
-            args = { "bash", "-l" },
-        },
-        {
-            label = "Zsh",
-            args = { "zsh", "-l" },
-        },
-        {
-            label = "Fish",
-            args = { "fish", "-l" },
-        },
-    },
-
-    -- Font settings (optimized for crisp rendering on Wayland/Hyprland)
-    font = wezterm.font("JetBrains Mono", { 
-        weight = "Regular",
-    }),
-    font_size = 12.0,
-    line_height = 1.1,
-    
-    -- Font rendering options for maximum sharpness
-    font_rasterizer = "FreeType",
-    
-    -- FreeType settings for sharp rendering
-    freetype_render_target = "Normal",  -- Normal target for greyscale
-    freetype_load_target = "Light",
-    freetype_interpreter_version = 40,
-    
-    -- Disable text blurring effects
-    adjust_window_size_when_changing_font_size = false,
-
-    -- Colors
-    color_scheme = 'tokyonight-storm',
-    background = {
-       {
-            source = {
-                Color = "#24283b"
-            },
-            width = "100%",
-            height = "100%",
-            opacity = 0.9,
-        },
-    },
-    
-    -- Mouse bindings
-    mouse_bindings = {
-        -- Right click paste
-        {
-            event = { Down = { streak = 1, button = "Right" } },
-            mods = "NONE",
-            action = act.PasteFrom "Clipboard",
-        },
-        -- Ctrl+Click to open hyperlinks
-        {
-            event = { Up = { streak = 1, button = "Left" } },
-            mods = "CTRL",
-            action = act.OpenLinkAtMouseCursor,
-        },
-    },
+  },
 }
 
--- Status bar (right side) - must be outside config table
-wezterm.on("update-right-status", function(window, pane)
-    local date = wezterm.strftime("%Y-%m-%d %H:%M:%S")
-    window:set_right_status(wezterm.format({
-        { Foreground = { Color = "#a9b1d6" } },
-        { Text = date },
-    }))
-end)
+-- ── Mouse bindings ────────────────────────────────────────────────────────────
+local mouse_bindings = {
+  -- Right-click pastes from clipboard
+  {
+    event  = { Down = { streak = 1, button = "Right" } },
+    mods   = "NONE",
+    action = act.PasteFrom "Clipboard",
+  },
+  -- Ctrl/Cmd+Click opens hyperlinks
+  {
+    event  = { Up = { streak = 1, button = "Left" } },
+    mods   = is_macos and "CMD" or "CTRL",
+    action = act.OpenLinkAtMouseCursor,
+  },
+}
+
+-- ── Full config table ─────────────────────────────────────────────────────────
+config.automatically_reload_config = true
+config.enable_wayland               = true
+config.disable_default_key_bindings = true
+
+config.keys          = keys
+config.mouse_bindings = mouse_bindings
+
+-- Tab bar
+config.tab_max_width                  = 32
+config.use_fancy_tab_bar              = false
+config.show_new_tab_button_in_tab_bar = false
+
+-- Window
+config.window_close_confirmation = "NeverPrompt"
+config.window_decorations        = "RESIZE"
+config.window_padding            = { left = 4, right = 4, top = 4, bottom = 4 }
+
+-- Scrollback
+config.scrollback_lines = 10000
+
+-- Cursor
+config.default_cursor_style = "BlinkingBlock"
+config.cursor_blink_rate    = 500
+
+-- Selection
+config.selection_word_boundary = " \t\n{}[]()\"'`,;:"
+config.enable_kitty_graphics   = true
+
+-- Launch menu
+config.launch_menu = {
+  { label = "Bash", args = { "bash", "-l" } },
+  { label = "Zsh",  args = { "zsh",  "-l" } },
+  { label = "Fish", args = { "fish", "-l" } },
+}
+
+-- Font
+config.font      = wezterm.font("JetBrains Mono", { weight = "Regular" })
+config.font_size = 12.0
+config.line_height = 1.1
+
+-- Font rendering (crisp on Wayland / Hyprland)
+config.font_rasterizer             = "FreeType"
+config.freetype_render_target      = "Normal"
+config.freetype_load_target        = "Light"
+config.freetype_interpreter_version = 40
+config.adjust_window_size_when_changing_font_size = false
+
+-- Color scheme + semi-transparent background
+config.color_scheme = "tokyonight-storm"
+config.background   = {
+  {
+    source  = { Color = "#24283b" },
+    width   = "100%",
+    height  = "100%",
+    opacity = 0.9,
+  },
+}
 
 return config

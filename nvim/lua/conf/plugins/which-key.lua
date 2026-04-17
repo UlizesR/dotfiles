@@ -21,6 +21,9 @@ return {
       { "<leader>r", desc = "Refresh the file tree" },
       { "<C-e>",     desc = "Toggle focus between file tree and editor" },
 
+      -- Keymap browser (defined in telescope.lua)
+      { "<leader>fk", desc = "Browse all keymaps (flat list)" },
+
       -- LSP (defined in lsp.lua — buffer-local, shown here for reference)
       { "K",    desc = "Show docs for symbol under cursor" },
       { "gd",   desc = "Go to definition" },
