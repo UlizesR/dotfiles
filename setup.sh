@@ -72,8 +72,9 @@ apt_ensure() {
   for pkg in "$@"; do
     dpkg -s "$pkg" &>/dev/null && success "$pkg installed" || needed+=("$pkg")
   done
-  ((${#needed[@]})) && sudo apt-get install -y "${needed[@]}"
-  return 0
+  if [[ ${#needed[@]} -gt 0 ]]; then
+    sudo apt-get install -y "${needed[@]}"
+  fi
 }
 
 # Batch-install only the missing packages from a list (pacman)
@@ -82,8 +83,9 @@ pacman_ensure() {
   for pkg in "$@"; do
     pacman -Qi "$pkg" &>/dev/null && success "$pkg installed" || needed+=("$pkg")
   done
-  ((${#needed[@]})) && sudo pacman -S --noconfirm "${needed[@]}"
-  return 0
+  if [[ ${#needed[@]} -gt 0 ]]; then
+    sudo pacman -S --noconfirm "${needed[@]}"
+  fi
 }
 
 # ── OS / distro detection ─────────────────────────────────────────────────────
@@ -151,7 +153,10 @@ if [[ "$OS" == "Darwin" ]]; then
   fi
   # Source brew into this session
   for _b in /opt/homebrew/bin/brew /usr/local/bin/brew; do
-    [[ -x "$_b" ]] && eval "$($_b shellenv)" && break
+    if [[ -x "$_b" ]]; then
+      eval "$($_b shellenv)"
+      break
+    fi
   done
   success "Homebrew: $(brew --version | head -1)"
 
