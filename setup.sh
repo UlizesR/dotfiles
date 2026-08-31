@@ -2,7 +2,10 @@
 # setup.sh — bootstrap a dev environment from this dotfiles repo
 set -euo pipefail
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Config ─────────────────────────────────────────────────────────────────
+NERD_FONT_VERSION="v3.1.1"
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
 info()    { echo "  $*"; }
 success() { echo "  ✅ $*"; }
 warn()    { echo "  ⚠️  $*"; }
@@ -19,15 +22,17 @@ link_with_backup() {
   success "Linked: $src → $dest"
 }
 
-# Install a package only if the command is missing
+# Generic "install X if a check fails" helper.
+# Usage: install_if_missing "<check expr>" "<display name>" <install cmd...>
 install_if_missing() {
-  local cmd="$1"; shift
-  if command -v "$cmd" &>/dev/null; then
-    success "$cmd already installed"
+  local check="$1" desc="$2"; shift 2
+  if eval "$check" &>/dev/null; then
+    success "$desc already installed"
     return 0
   fi
-  info "Installing $cmd…"
+  info "Installing $desc…"
   "$@"
+  success "$desc installed"
 }
 
 # Check whether a font family is installed (cross-platform)
@@ -36,12 +41,49 @@ font_installed() {
   if command -v fc-list &>/dev/null; then
     fc-list | grep -qi "$pattern"
   elif [[ "$(uname -s)" == "Darwin" ]]; then
-    # Fallback for macOS without fontconfig
     find ~/Library/Fonts /Library/Fonts /System/Library/Fonts \
          -iname "*${pattern}*" 2>/dev/null | grep -q .
   else
     return 1
   fi
+}
+
+# Download + unpack the Nerd Font manually (used when no package/cask exists)
+install_nerd_font_manual() {
+  mkdir -p ~/.local/share/fonts
+  curl -Lo ~/.local/share/fonts/JetBrainsMono.zip \
+    "https://github.com/ryanoasis/nerd-fonts/releases/download/${NERD_FONT_VERSION}/JetBrainsMono.zip"
+  unzip -o ~/.local/share/fonts/JetBrainsMono.zip -d ~/.local/share/fonts/JetBrainsMono/
+  fc-cache -fv
+}
+
+install_wezterm_apt() {
+  curl -fsSL https://apt.fury.io/wez/gpg.key \
+    | sudo gpg --yes --dearmor -o /usr/share/keyrings/wezterm-fury.gpg
+  echo "deb [signed-by=/usr/share/keyrings/wezterm-fury.gpg] https://apt.fury.io/wez/ * *" \
+    | sudo tee /etc/apt/sources.list.d/wezterm.list >/dev/null
+  sudo apt-get update -qq
+  sudo apt-get install -y wezterm
+}
+
+# Batch-install only the missing packages from a list (apt)
+apt_ensure() {
+  local needed=()
+  for pkg in "$@"; do
+    dpkg -s "$pkg" &>/dev/null && success "$pkg installed" || needed+=("$pkg")
+  done
+  ((${#needed[@]})) && sudo apt-get install -y "${needed[@]}"
+  return 0
+}
+
+# Batch-install only the missing packages from a list (pacman)
+pacman_ensure() {
+  local needed=()
+  for pkg in "$@"; do
+    pacman -Qi "$pkg" &>/dev/null && success "$pkg installed" || needed+=("$pkg")
+  done
+  ((${#needed[@]})) && sudo pacman -S --noconfirm "${needed[@]}"
+  return 0
 }
 
 # ── OS / distro detection ─────────────────────────────────────────────────────
@@ -119,47 +161,23 @@ if [[ "$OS" == "Darwin" ]]; then
   # CLI tools
   step "CLI tools (Homebrew)"
   for pkg in neovim fzf ripgrep bat zoxide tmux htop git; do
-    if brew list --formula "$pkg" &>/dev/null; then
-      success "$pkg already installed"
-    else
-      info "Installing $pkg…"; brew install "$pkg"; success "$pkg installed"
-    fi
+    install_if_missing "brew list --formula $pkg" "$pkg" brew install "$pkg"
   done
 
-  # starship
-  install_if_missing starship \
+  install_if_missing "command -v starship" "starship" \
     bash -c "$(curl -sS https://starship.rs/install.sh) -- --yes"
 
-  # pyenv
-  install_if_missing pyenv brew install pyenv
+  install_if_missing "command -v pyenv" "pyenv" brew install pyenv
 
-  # nvm
-  if [[ ! -d "$HOME/.nvm" ]]; then
-    info "Installing nvm…"
-    brew install nvm
-    mkdir -p "$HOME/.nvm"
-  fi
-  success "nvm ready"
+  install_if_missing "[[ -d \$HOME/.nvm ]]" "nvm" \
+    bash -c "brew install nvm && mkdir -p \$HOME/.nvm"
 
-  # JetBrains Mono Nerd Font
   step "Fonts"
-  if font_installed "JetBrainsMono"; then
-    success "JetBrains Mono Nerd Font already installed"
-  else
-    info "Installing JetBrains Mono Nerd Font…"
+  install_if_missing "font_installed JetBrainsMono" "JetBrains Mono Nerd Font" \
     brew install --cask font-jetbrains-mono-nerd-font
-    success "Font installed"
-  fi
 
-  # WezTerm
   step "WezTerm"
-  if ! command -v wezterm &>/dev/null; then
-    info "Installing WezTerm…"
-    brew install --cask wezterm
-    success "WezTerm installed"
-  else
-    success "WezTerm already installed"
-  fi
+  install_if_missing "command -v wezterm" "WezTerm" brew install --cask wezterm
 
   # macOS defaults
   step "macOS defaults"
@@ -174,93 +192,48 @@ else
   if [[ "$DISTRO" == "arch" ]]; then
     # ── Arch Linux ────────────────────────────────────────────────────────────
     sudo pacman -Sy --noconfirm
+    pacman_ensure neovim fzf ripgrep bat tmux htop git curl wget unzip
 
-    PKGS_NEEDED=()
-    for pkg in neovim fzf ripgrep bat tmux htop git curl wget unzip; do
-      pacman -Qi "$pkg" &>/dev/null && success "$pkg installed" || PKGS_NEEDED+=("$pkg")
-    done
-    [[ ${#PKGS_NEEDED[@]} -gt 0 ]] && sudo pacman -S --noconfirm "${PKGS_NEEDED[@]}"
-
-    install_if_missing zoxide \
+    install_if_missing "command -v zoxide" "zoxide" \
       bash -c "$(curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh)"
 
-    # WezTerm
-    if ! command -v wezterm &>/dev/null; then
-      info "Installing WezTerm (pacman)…"
-      sudo pacman -S --noconfirm wezterm
-      success "WezTerm installed"
-    else
-      success "WezTerm already installed"
-    fi
+    step "WezTerm"
+    install_if_missing "command -v wezterm" "WezTerm" sudo pacman -S --noconfirm wezterm
 
-    # Nerd Font symbols
-    if ! pacman -Qi ttf-nerd-fonts-symbols-mono &>/dev/null; then
+    install_if_missing "pacman -Qi ttf-nerd-fonts-symbols-mono" "Nerd Font symbols" \
       sudo pacman -S --noconfirm ttf-nerd-fonts-symbols-mono
-    fi
-    success "Nerd Font symbols present"
 
-    # JetBrains Mono Nerd Font
     step "Fonts"
     if font_installed "JetBrainsMono"; then
       success "JetBrains Mono Nerd Font already installed"
+    elif command -v yay &>/dev/null; then
+      info "Installing JetBrains Mono Nerd Font (yay)…"
+      yay -S --noconfirm ttf-jetbrains-mono-nerd
+      success "JetBrains Mono Nerd Font installed"
+    elif command -v paru &>/dev/null; then
+      info "Installing JetBrains Mono Nerd Font (paru)…"
+      paru -S --noconfirm ttf-jetbrains-mono-nerd
+      success "JetBrains Mono Nerd Font installed"
     else
-      info "Installing JetBrains Mono Nerd Font…"
-      if command -v yay &>/dev/null; then
-        yay -S --noconfirm ttf-jetbrains-mono-nerd
-      elif command -v paru &>/dev/null; then
-        paru -S --noconfirm ttf-jetbrains-mono-nerd
-      else
-        mkdir -p ~/.local/share/fonts
-        curl -Lo ~/.local/share/fonts/JetBrainsMono.zip \
-          https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip
-        unzip -o ~/.local/share/fonts/JetBrainsMono.zip \
-              -d ~/.local/share/fonts/JetBrainsMono/
-        fc-cache -fv
-      fi
+      info "Installing JetBrains Mono Nerd Font (manual)…"
+      install_nerd_font_manual
       success "JetBrains Mono Nerd Font installed"
     fi
 
   elif command -v apt-get &>/dev/null; then
     # ── Debian / Ubuntu ───────────────────────────────────────────────────────
     sudo apt-get update -qq
+    apt_ensure neovim fzf ripgrep bat tmux htop git curl wget unzip
 
-    PKGS_NEEDED=()
-    for pkg in neovim fzf ripgrep bat tmux htop git curl wget unzip; do
-      dpkg -s "$pkg" &>/dev/null && success "$pkg installed" || PKGS_NEEDED+=("$pkg")
-    done
-    [[ ${#PKGS_NEEDED[@]} -gt 0 ]] && sudo apt-get install -y "${PKGS_NEEDED[@]}"
-
-    install_if_missing zoxide \
+    install_if_missing "command -v zoxide" "zoxide" \
       bash -c "$(curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh)"
 
-    # WezTerm via its APT repo
-    if ! command -v wezterm &>/dev/null; then
-      info "Installing WezTerm (apt)…"
-      curl -fsSL https://apt.fury.io/wez/gpg.key \
-        | sudo gpg --yes --dearmor -o /usr/share/keyrings/wezterm-fury.gpg
-      echo "deb [signed-by=/usr/share/keyrings/wezterm-fury.gpg] https://apt.fury.io/wez/ * *" \
-        | sudo tee /etc/apt/sources.list.d/wezterm.list >/dev/null
-      sudo apt-get update -qq
-      sudo apt-get install -y wezterm
-      success "WezTerm installed"
-    else
-      success "WezTerm already installed"
-    fi
+    step "WezTerm"
+    install_if_missing "command -v wezterm" "WezTerm" install_wezterm_apt
 
-    # JetBrains Mono Nerd Font
     step "Fonts"
-    if font_installed "JetBrainsMono"; then
-      success "JetBrains Mono Nerd Font already installed"
-    else
-      info "Installing JetBrains Mono Nerd Font…"
-      mkdir -p ~/.local/share/fonts
-      curl -Lo ~/.local/share/fonts/JetBrainsMono.zip \
-        https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip
-      unzip -o ~/.local/share/fonts/JetBrainsMono.zip \
-            -d ~/.local/share/fonts/JetBrainsMono/
-      fc-cache -fv
-      success "JetBrains Mono Nerd Font installed"
-    fi
+    install_if_missing "font_installed JetBrainsMono" "JetBrains Mono Nerd Font" \
+      install_nerd_font_manual
 
   else
     warn "Unsupported distro ($DISTRO) — install CLI tools manually."
@@ -269,24 +242,14 @@ else
   # ── Shared Linux: starship, pyenv, nvm ────────────────────────────────────
   step "Cross-distro tools"
 
-  install_if_missing starship \
+  install_if_missing "command -v starship" "starship" \
     sh -c "$(curl -sS https://starship.rs/install.sh) -- --yes"
 
-  if [[ ! -d "$HOME/.pyenv" ]]; then
-    info "Installing pyenv…"
-    curl https://pyenv.run | bash
-    success "pyenv installed"
-  else
-    success "pyenv already installed"
-  fi
+  install_if_missing "[[ -d \$HOME/.pyenv ]]" "pyenv" \
+    bash -c "curl https://pyenv.run | bash"
 
-  if [[ ! -d "$HOME/.nvm" ]]; then
-    info "Installing nvm…"
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-    success "nvm installed"
-  else
-    success "nvm already installed"
-  fi
+  install_if_missing "[[ -d \$HOME/.nvm ]]" "nvm" \
+    bash -c "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash"
 fi  # end Linux
 
 # ── Python: make the active python3 the system default ───────────────────────
@@ -306,23 +269,18 @@ info "Python: $(python3 --version 2>/dev/null || echo 'not found')"
 # ── zinit ─────────────────────────────────────────────────────────────────────
 step "zinit"
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
-if [[ ! -d "$ZINIT_HOME" ]]; then
-  mkdir -p "$(dirname "$ZINIT_HOME")"
-  git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
-  success "zinit installed"
-else
-  success "zinit already installed"
-fi
+install_if_missing "[[ -d $ZINIT_HOME ]]" "zinit" \
+  bash -c "mkdir -p \"\$(dirname \"$ZINIT_HOME\")\" && git clone https://github.com/zdharma-continuum/zinit.git \"$ZINIT_HOME\""
 
 # ── Symlink dotfiles ──────────────────────────────────────────────────────────
 step "Symlinking dotfiles"
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 mkdir -p "$HOME/.config"
 
-link_with_backup "${REPO_DIR}/nvim"                  "$HOME/.config/nvim"
+link_with_backup "${REPO_DIR}/nvim"                   "$HOME/.config/nvim"
 link_with_backup "${REPO_DIR}/starship/starship.toml" "$HOME/.config/starship.toml"
-link_with_backup "${REPO_DIR}/wezterm"               "$HOME/.config/wezterm"
-link_with_backup "${REPO_DIR}/zshrc/.zshrc"          "$HOME/.zshrc"
+link_with_backup "${REPO_DIR}/wezterm"                "$HOME/.config/wezterm"
+link_with_backup "${REPO_DIR}/zshrc/.zshrc"           "$HOME/.zshrc"
 
 # ── Default shell ─────────────────────────────────────────────────────────────
 step "Default shell"
@@ -346,6 +304,6 @@ echo "📋 Next steps:"
 echo "   • Set your terminal font to 'JetBrains Mono Nerd Font'"
 echo "   • source ~/.zshrc  (or open a new terminal)"
 echo "   • Open nvim — Lazy will auto-install plugins on first launch"
-echo "   • Press ${mod:-CTRL}+? in WezTerm to view all keybindings"
+echo "   • Check your WezTerm config for the keybindings cheat-sheet"
 echo "   • Press <leader>fk in nvim to browse all keymaps"
 echo ""
