@@ -1,74 +1,76 @@
--- Debug adapters are only wired up for C/C++/Rust (codelldb) and
--- Python (debugpy) -- the languages from your list with practical,
--- maintained debugger support in the nvim-dap ecosystem. Bash,
--- Assembly, Lua, Obj-C, GLSL, MSL, and CUDA don't have a realistic
--- DAP story; this stays out rather than wiring up something flaky.
-return {
-  'mfussenegger/nvim-dap',
-  dependencies = {
-    'rcarriga/nvim-dap-ui',
-    'nvim-neotest/nvim-nio',
-    'jay-babu/mason-nvim-dap.nvim',
+vim.pack.add({
+  { src = "https://github.com/mfussenegger/nvim-dap" },
+  { src = "https://github.com/rcarriga/nvim-dap-ui" },
+  { src = "https://github.com/nvim-neotest/nvim-nio" },
+}, { load = false })
+
+local ok, dap = pcall(require, "dap")
+if not ok then
+  vim.notify(("nvim-dap failed to load: %s"):format(dap), vim.log.levels.ERROR)
+  return
+end
+
+-- Open dap-ui automatically when a debug session starts, close it when the
+-- session ends -- this is the standard nvim-dap-ui wiring, not something
+-- dap-ui does on its own.
+local ui_ok, dapui = pcall(require, "dapui")
+if ui_ok then
+  dapui.setup()
+  dap.listeners.after.event_initialized["dapui_config"] = function()
+    dapui.open()
+  end
+  dap.listeners.before.event_terminated["dapui_config"] = function()
+    dapui.close()
+  end
+  dap.listeners.before.event_exited["dapui_config"] = function()
+    dapui.close()
+  end
+else
+  vim.notify(("nvim-dap-ui failed to load: %s"):format(dapui), vim.log.levels.ERROR)
+end
+
+dap.adapters.lldb = {
+  type = "executable",
+  command = "lldb-dap",
+  name = "lldb",
+}
+
+-- debugpy -- `pip install debugpy`
+dap.adapters.python = {
+  type = "executable",
+  command = "python3",
+  args = { "-m", "debugpy.adapter" },
+}
+
+local lldb_config = {
+  {
+    name = "Launch",
+    type = "lldb",
+    request = "launch",
+    program = function()
+      return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
+    end,
+    cwd = "${workspaceFolder}",
+    stopOnEntry = false,
+    args = {},
   },
-  config = function()
-    require('mason-nvim-dap').setup({
-      ensure_installed = { 'codelldb', 'debugpy' },
-      automatic_installation = true,
-    })
+}
 
-    local dap, dapui = require('dap'), require('dapui')
-    dapui.setup()
+dap.configurations.c = lldb_config
+dap.configurations.cpp = lldb_config
+dap.configurations.objc = lldb_config
+dap.configurations.objcpp = lldb_config
+dap.configurations.rust = lldb_config
+dap.configurations.asm = lldb_config
 
-    dap.listeners.after.event_initialized['dapui_config'] = function()
-      dapui.open()
-    end
-    dap.listeners.before.event_terminated['dapui_config'] = function()
-      dapui.close()
-    end
-    dap.listeners.before.event_exited['dapui_config'] = function()
-      dapui.close()
-    end
-
-    -- C / C++ / Rust via codelldb
-    dap.adapters.codelldb = {
-      type = 'server',
-      port = '${port}',
-      executable = {
-        command = vim.fn.stdpath('data') .. '/mason/bin/codelldb',
-        args = { '--port', '${port}' },
-      },
-    }
-    for _, lang in ipairs({ 'c', 'cpp', 'rust' }) do
-      dap.configurations[lang] = {
-        {
-          name = 'Launch',
-          type = 'codelldb',
-          request = 'launch',
-          program = function()
-            return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
-          end,
-          cwd = '${workspaceFolder}',
-          stopOnEntry = false,
-        },
-      }
-    end
-
-    -- Python via debugpy
-    dap.adapters.python = {
-      type = 'executable',
-      command = vim.fn.stdpath('data') .. '/mason/packages/debugpy/venv/bin/python',
-      args = { '-m', 'debugpy.adapter' },
-    }
-    dap.configurations.python = {
-      {
-        type = 'python',
-        request = 'launch',
-        name = 'Launch file',
-        program = '${file}',
-        pythonPath = function()
-          return 'python3'
-        end,
-      },
-    }
-  end,
+dap.configurations.python = {
+  {
+    type = "python",
+    request = "launch",
+    name = "Launch file",
+    program = "${file}",
+    pythonPath = function()
+      return "python3"
+    end,
+  },
 }

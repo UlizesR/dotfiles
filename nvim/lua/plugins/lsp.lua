@@ -1,84 +1,133 @@
--- Neovim 0.11+ moved LSP configuration into core: instead of calling
--- require('lspconfig')[name].setup({...}), you register config with
--- vim.lsp.config(name, {...}) and turn it on with vim.lsp.enable(name).
--- nvim-lspconfig's job now is just to ship the default configs for
--- hundreds of servers (registered automatically when the plugin
--- loads) -- we only override the handful of settings we care about.
---
--- LSP coverage by requested language:
---   C/C++/Obj-C/CUDA -> clangd (one server, multiple filetypes)
---   Python            -> pyright
---   Rust              -> rust_analyzer (routed through clippy)
---   Bash              -> bashls
---   Assembly          -> asm_lsp (coverage is thin industry-wide)
---   Lua               -> lua_ls (pointed at Neovim's own runtime)
---   GLSL              -> glsl_analyzer
---   Vim(script)       -> vimls
---   TOML              -> taplo
---   YAML              -> yamlls
---   LaTeX             -> texlab
---   Markdown          -> marksman
---   MSL               -> no LSP exists; not included (see options.lua)
-return {
-  'neovim/nvim-lspconfig',
-  event = { 'BufReadPre', 'BufNewFile' },
-  dependencies = {
-    'williamboman/mason.nvim',
-    'williamboman/mason-lspconfig.nvim',
-    'hrsh7th/cmp-nvim-lsp',
-  },
-  config = function()
-    require('mason').setup()
+local keymaps = require("config.keymaps")
 
-    local servers = {
-      'clangd', 'pyright', 'rust_analyzer', 'bashls', 'lua_ls',
-      'glsl_analyzer', 'asm_lsp', 'vimls', 'taplo', 'yamlls',
-      'texlab', 'marksman',
-    }
+local capabilities = vim.lsp.protocol.make_client_capabilities()
+local has_cmp_lsp, cmp_lsp = pcall(require, "cmp_nvim_lsp")
+if has_cmp_lsp then
+  capabilities = cmp_lsp.default_capabilities(capabilities)
+end
 
-    local ok, cmp_nvim_lsp = pcall(require, 'cmp_nvim_lsp')
-    local capabilities = ok and cmp_nvim_lsp.default_capabilities()
-      or vim.lsp.protocol.make_client_capabilities()
-
-    -- Applies to every server unless a per-server vim.lsp.config()
-    -- call below overrides it.
-    vim.lsp.config('*', { capabilities = capabilities })
-
-    vim.lsp.config('clangd', {
-      filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda' },
-      cmd = {
-        'clangd',
-        '--background-index',
-        '--clang-tidy',
-        '--header-insertion=never',
-      },
-    })
-
-    vim.lsp.config('rust_analyzer', {
-      settings = {
-        ['rust-analyzer'] = { check = { command = 'clippy' } },
-      },
-    })
-
-    vim.lsp.config('lua_ls', {
-      settings = {
-        Lua = {
-          diagnostics = { globals = { 'vim' } },
-          workspace = {
-            library = vim.api.nvim_get_runtime_file('', true),
-            checkThirdParty = false,
-          },
-          telemetry = { enable = false },
-        },
-      },
-    })
-
-    -- automatic_enable installs each server via Mason, then calls
-    -- vim.lsp.enable() only once the install actually finishes --
-    -- this is what fixes the "server not found" race on a first run.
-    require('mason-lspconfig').setup({
-      ensure_installed = servers,
-      automatic_enable = true,
-    })
+-- This core autocommand monitors when Neovim links a Language Server to an active editing window.
+vim.api.nvim_create_autocmd("LspAttach", {
+  group = vim.api.nvim_create_augroup("NativeLspMaps", { clear = true }),
+  callback = function(args)
+    keymaps.on_lsp_attach(args.buf)
   end,
+})
+
+-- ------------------------------------------------------------------------
+-- C / C++ / Objective-C
+-- ------------------------------------------------------------------------
+vim.lsp.config.clangd = {
+  cmd = { "clangd" },
+  filetypes = { "c", "cpp", "objc", "objcpp" },
+  root_markers = { "compile_commands.json", "compile_flags.txt", ".git" },
+  capabilities = capabilities,
 }
+vim.lsp.enable("clangd")
+
+-- ------------------------------------------------------------------------
+-- Rust (clippy runs via rust-analyzer's own checkOnSave, no separate linter)
+-- ------------------------------------------------------------------------
+vim.lsp.config.rust_analyzer = {
+  cmd = { "rust-analyzer" },
+  filetypes = { "rust" },
+  root_markers = { "Cargo.toml", "rust-project.json", ".git" },
+  capabilities = capabilities,
+  settings = {
+    ["rust-analyzer"] = {
+      check = { command = "clippy" },
+    },
+  },
+}
+vim.lsp.enable("rust_analyzer")
+
+-- ------------------------------------------------------------------------
+-- Assembly (NASM/GAS/GO) -- `cargo install asm-lsp`
+-- ------------------------------------------------------------------------
+vim.lsp.config.asm_lsp = {
+  cmd = { "asm-lsp" },
+  filetypes = { "asm", "vmasm" },
+  root_markers = { ".asm-lsp.toml", ".git" },
+  capabilities = capabilities,
+}
+vim.lsp.enable("asm_lsp")
+
+-- ------------------------------------------------------------------------
+-- Lua
+-- ------------------------------------------------------------------------
+vim.lsp.config.lua_ls = {
+  cmd = { "lua-language-server" },
+  filetypes = { "lua" },
+  root_markers = { ".git", ".luarc.json" },
+  capabilities = capabilities,
+  settings = {
+    Lua = { runtime = { version = "LuaJIT" } },
+  },
+}
+vim.lsp.enable("lua_ls")
+
+-- ------------------------------------------------------------------------
+-- Python (ruff handles linting separately -- see plugins.linter)
+-- ------------------------------------------------------------------------
+vim.lsp.config.pyright = {
+  cmd = { "pyright-langserver", "--stdio" },
+  filetypes = { "python" },
+  root_markers = { ".git", "pyproject.toml", "setup.py" },
+  capabilities = capabilities,
+}
+vim.lsp.enable("pyright")
+
+-- ------------------------------------------------------------------------
+-- LaTeX (chktex handles linting separately -- see plugins.linter)
+-- ------------------------------------------------------------------------
+vim.lsp.config.texlab = {
+  cmd = { "texlab" },
+  filetypes = { "tex", "plaintex", "bib" },
+  root_markers = { ".git", ".latexmkrc", "texlabroot" },
+  capabilities = capabilities,
+}
+vim.lsp.enable("texlab")
+
+-- ------------------------------------------------------------------------
+-- Markdown (markdownlint handles linting separately -- see plugins.linter)
+-- ------------------------------------------------------------------------
+vim.lsp.config.marksman = {
+  cmd = { "marksman", "server" },
+  filetypes = { "markdown", "markdown.mdx" },
+  root_markers = { ".git", "marksman.toml" },
+  capabilities = capabilities,
+}
+vim.lsp.enable("marksman")
+
+-- ------------------------------------------------------------------------
+-- TOML
+-- ------------------------------------------------------------------------
+vim.lsp.config.taplo = {
+  cmd = { "taplo", "lsp", "stdio" },
+  filetypes = { "toml" },
+  root_markers = { ".git", "taplo.toml" },
+  capabilities = capabilities,
+}
+vim.lsp.enable("taplo")
+
+-- ------------------------------------------------------------------------
+-- JSON -- `npm i -g vscode-langservers-extracted`
+-- ------------------------------------------------------------------------
+vim.lsp.config.jsonls = {
+  cmd = { "vscode-json-language-server", "--stdio" },
+  filetypes = { "json", "jsonc" },
+  root_markers = { ".git" },
+  capabilities = capabilities,
+}
+vim.lsp.enable("jsonls")
+
+-- ------------------------------------------------------------------------
+-- QML -- ships with Qt Declarative; binary may be named qmlls or qmlls6
+-- ------------------------------------------------------------------------
+vim.lsp.config.qmlls = {
+  cmd = { "qmlls" },
+  filetypes = { "qml" },
+  root_markers = { ".git" },
+  capabilities = capabilities,
+}
+vim.lsp.enable("qmlls")

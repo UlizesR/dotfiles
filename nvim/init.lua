@@ -1,10 +1,21 @@
--- Leader must be set before lazy.nvim loads plugins that map <leader> keys
-vim.g.mapleader = ' '
-vim.g.maplocalleader = ' '
-
+-- ==========================================================================
+-- ENTRY POINT
+-- ==========================================================================
+vim.g.start_time = vim.fn.reltime()
 vim.loader.enable()
 
-require('config.options')
-require('config.lazy')   -- bootstraps lazy.nvim and loads everything in lua/plugins/
-require('config.keymaps')
-require('config.autocmd')
+require("vim._core.ui2").enable({})
+
+require("config.options")
+require("config.keymaps")
+require("config.autocmd")
+require("config.diagnostics")
+
+require("plugins.lsp")
+require("plugins.linter")
+require("plugins.colorscheme")
+require("plugins.filetree")
+require("plugins.fzf")
+require("plugins.gitsigns")
+require("plugins.statusline")
+require("plugins.bufferline")
