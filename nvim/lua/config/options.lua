@@ -20,3 +20,6 @@ vim.g.filetype_m = 'objc'
 -- Language -- treat .metal files as C++ so you at least get reasonable
 -- highlighting and clangd support, since MSL is a C++-derived syntax.
 vim.filetype.add({ extension = { metal = 'cpp' } })
+
+vim.opt.autocomplete = true
+
